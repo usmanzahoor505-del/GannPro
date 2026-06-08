@@ -38,20 +38,42 @@ router.post(
   upload.single("screenshot"),
   async (req: AuthRequest, res) => {
     try {
-      const { plan, transactionId } = req.body;
-      if (!plan || !transactionId || !req.file) {
-        return res.status(400).json({ error: "Plan, transaction ID and screenshot are required" });
+      const { plan, transactionId, paymentMethod } = req.body;
+      if (!plan || !paymentMethod) {
+        return res.status(400).json({ error: "Plan and payment method are required" });
       }
 
-      const screenshotUrl = await uploadScreenshot(req.user!.userId, req.file);
+      const autoApprove = ["jazzcash", "easypaisa", "card"].includes(paymentMethod);
+      let screenshotUrl: string | undefined;
+
+      if (req.file) {
+        screenshotUrl = await uploadScreenshot(req.user!.userId, req.file);
+      }
+
+      // Transaction ID required for non-auto-approve methods
+      if (!autoApprove && !transactionId) {
+        return res.status(400).json({ error: "Transaction ID is required for manual payments" });
+      }
+
+      if (!screenshotUrl && !autoApprove) {
+        return res.status(400).json({ error: "Screenshot is required for manual payment methods" });
+      }
+
       const payment = await submitPayment(
         req.user!.userId,
         plan as PlanId,
-        transactionId,
-        screenshotUrl
+        transactionId || "",
+        screenshotUrl,
+        paymentMethod,
+        autoApprove
       );
 
-      res.json({ payment, message: "Payment submitted. Awaiting admin approval." });
+      res.json({
+        payment,
+        message: autoApprove
+          ? "Payment submitted and auto-approved. Your subscription is now active."
+          : "Payment submitted. Awaiting admin approval.",
+      });
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: "Payment submission failed" });

@@ -21,8 +21,20 @@ export async function submitPayment(
   userId: string,
   plan: PlanId,
   transactionId: string,
-  screenshotUrl: string
+  screenshotUrl: string,
+  paymentMethod?: string,
+  autoApprove = false
 ) {
+  if (autoApprove) {
+    const result = await approveAutomaticPayment(
+      userId,
+      plan,
+      transactionId,
+      screenshotUrl
+    );
+    return result.payment;
+  }
+
   const amount = PLANS[plan].pkr;
 
   const { data, error } = await supabase
@@ -209,7 +221,8 @@ export async function getScreenshotSignedUrl(storedPath: string) {
 export async function approveAutomaticPayment(
   userId: string,
   plan: PlanId,
-  transactionId: string
+  transactionId: string,
+  screenshotUrl?: string
 ) {
   const amount = PLANS[plan].pkr;
   const approvalDate = new Date();
@@ -223,6 +236,7 @@ export async function approveAutomaticPayment(
       plan_selected: plan,
       amount_pkr: amount,
       transaction_id: transactionId,
+      screenshot_url: screenshotUrl,
       status: "approved",
       reviewed_at: approvalDate.toISOString(),
     })
