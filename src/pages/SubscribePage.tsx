@@ -13,7 +13,7 @@ import { useToast } from "@/context/ToastContext";
 type Step = "plans" | "payment" | "confirm";
 
 export function SubscribePage() {
-  const { user } = useAuth();
+  const { user, subscription } = useAuth();
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
   const initialPlan = searchParams.get("plan") || "";
