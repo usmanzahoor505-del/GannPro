@@ -21,7 +21,7 @@ export async function submitPayment(
   userId: string,
   plan: PlanId,
   transactionId: string,
-  screenshotUrl: string,
+  screenshotUrl: string | undefined,
   paymentMethod?: string,
   autoApprove = false
 ) {
