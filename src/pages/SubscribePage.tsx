@@ -186,57 +186,76 @@ export function SubscribePage() {
         <h1 className="text-2xl font-bold mb-2">Subscribe to GannPro9</h1>
         <p className="text-slate-500 text-sm mb-8">Choose a plan and complete payment via your preferred app</p>
 
-        {/* Step 1: Plans + Form */}
-        {step === "plans" && (
-          <div className="space-y-6">
-            <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
-              {plans.map((plan) => (
-                <button
-                  key={plan.id}
-                  onClick={() => setSelectedPlan(plan.id)}
-                  className={`rounded-2xl border p-5 text-left transition-all ${
-                    selectedPlan === plan.id
-                      ? "border-violet-500/50 bg-violet-500/10 ring-2 ring-violet-500/30"
-                      : "border-white/10 bg-white/[0.03] hover:border-white/20"
-                  }`}
-                >
-                  <h3 className="font-bold text-lg">{plan.name}</h3>
-                  <p className="text-2xl font-black text-violet-300 mt-2">${plan.usd}</p>
-                  <p className="text-sm text-slate-400">{plan.pkr.toLocaleString()} PKR</p>
-                  <p className="text-xs text-slate-500 mt-2">{plan.months} Month{plan.months > 1 ? "s" : ""} access</p>
-                </button>
-              ))}
+        {/* Active Subscription Check */}
+        {subscription?.status === "active" ? (
+          <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-8 text-center">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/20 text-3xl">
+              ✅
             </div>
-
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 space-y-4">
-              <div>
-                <Label>Full Name</Label>
-                <Input value={name} onChange={(e) => setName(e.target.value)} required />
-              </div>
-              <div>
-                <Label>Email</Label>
-                <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-              </div>
-              <div>
-                <Label>Phone Number</Label>
-                <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="03XX XXXXXXX" required />
-              </div>
-              <div>
-                <Label>Selected Plan</Label>
-                <select
-                  value={selectedPlan}
-                  onChange={(e) => setSelectedPlan(e.target.value)}
-                  className="w-full rounded-xl bg-[#0b1120] border border-white/10 px-3.5 py-2.5 text-sm text-white outline-none"
-                >
-                  <option value="">Select a plan...</option>
-                  {plans.map((p) => (
-                    <option key={p.id} value={p.id}>{p.label}</option>
-                  ))}
-                </select>
-              </div>
-              <Button onClick={handlePayNow} className="w-full text-base py-3 animate-pulse hover:animate-none">PAY NOW</Button>
-            </div>
+            <h2 className="text-2xl font-bold text-emerald-400 mb-2">Active Subscription</h2>
+            <p className="text-slate-300">
+              You already have an active <span className="font-semibold text-white">{subscription.planName}</span> plan.
+            </p>
+            <p className="text-slate-400 mt-2 text-sm">
+              Your current subscription expires in <span className="font-medium text-amber-400">{subscription.daysRemaining} days</span>. You cannot purchase a new plan until your current one expires.
+            </p>
+            <Button className="mt-6 px-8" onClick={() => window.location.href = "/dashboard"}>
+              Return to Dashboard
+            </Button>
           </div>
+        ) : (
+          /* Step 1: Plans + Form */
+          step === "plans" && (
+            <div className="space-y-6">
+              <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
+                {plans.map((plan) => (
+                  <button
+                    key={plan.id}
+                    onClick={() => setSelectedPlan(plan.id)}
+                    className={`rounded-2xl border p-5 text-left transition-all ${
+                      selectedPlan === plan.id
+                        ? "border-violet-500/50 bg-violet-500/10 ring-2 ring-violet-500/30"
+                        : "border-white/10 bg-white/[0.03] hover:border-white/20"
+                    }`}
+                  >
+                    <h3 className="font-bold text-lg">{plan.name}</h3>
+                    <p className="text-2xl font-black text-violet-300 mt-2">${plan.usd}</p>
+                    <p className="text-sm text-slate-400">{plan.pkr.toLocaleString()} PKR</p>
+                    <p className="text-xs text-slate-500 mt-2">{plan.months} Month{plan.months > 1 ? "s" : ""} access</p>
+                  </button>
+                ))}
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 space-y-4">
+                <div>
+                  <Label>Full Name</Label>
+                  <Input value={name} onChange={(e) => setName(e.target.value)} required />
+                </div>
+                <div>
+                  <Label>Email</Label>
+                  <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                </div>
+                <div>
+                  <Label>Phone Number</Label>
+                  <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="03XX XXXXXXX" required />
+                </div>
+                <div>
+                  <Label>Selected Plan</Label>
+                  <select
+                    value={selectedPlan}
+                    onChange={(e) => setSelectedPlan(e.target.value)}
+                    className="w-full rounded-xl bg-[#0b1120] border border-white/10 px-3.5 py-2.5 text-sm text-white outline-none"
+                  >
+                    <option value="">Select a plan...</option>
+                    {plans.map((p) => (
+                      <option key={p.id} value={p.id}>{p.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <Button onClick={handlePayNow} className="w-full text-base py-3 animate-pulse hover:animate-none">PAY NOW</Button>
+              </div>
+            </div>
+          )
         )}
 
         {/* Step 2: Payment Method Selection */}

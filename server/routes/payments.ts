@@ -9,6 +9,7 @@ import {
   approveAutomaticPayment,
 } from "../services/payments.js";
 import { initiateJazzCashPayment, verifyCallbackHash, initiateDirectWalletPayment, initiateDirectCardPayment } from "../services/jazzcash.js";
+import { getUserSubscription, getSubscriptionInfo } from "../services/subscription.js";
 import { config, PlanId } from "../config.js";
 
 const upload = multer({
@@ -21,6 +22,19 @@ const upload = multer({
 });
 
 const router = Router();
+
+async function requireNoActiveSubscription(req: AuthRequest, res: any, next: any) {
+  try {
+    const sub = await getUserSubscription(req.user!.userId);
+    const info = getSubscriptionInfo(sub, req.user!.role);
+    if (info.status === "active" && info.hasAccess) {
+      return res.status(403).json({ error: "You already have an active subscription. You cannot purchase a new one until it expires." });
+    }
+    next();
+  } catch (err) {
+    next(err);
+  }
+}
 
 router.get("/history", authenticate, async (req: AuthRequest, res) => {
   try {
@@ -35,6 +49,7 @@ router.get("/history", authenticate, async (req: AuthRequest, res) => {
 router.post(
   "/submit",
   authenticate,
+  requireNoActiveSubscription,
   upload.single("screenshot"),
   async (req: AuthRequest, res) => {
     try {
@@ -91,7 +106,7 @@ router.get("/receipt/:receiptNo", authenticate, async (req: AuthRequest, res) =>
 });
 
 // 💳 JazzCash Hosted Checkout — Initiate Payment
-router.post("/jazzcash/initiate", authenticate, async (req: AuthRequest, res) => {
+router.post("/jazzcash/initiate", authenticate, requireNoActiveSubscription, async (req: AuthRequest, res) => {
   try {
     const { plan } = req.body;
     if (!plan) {
@@ -153,7 +168,7 @@ router.post("/jazzcash/callback", async (req, res) => {
 });
 
 // 💳 JazzCash Direct Wallet — Mobile Wallet Direct checkout
-router.post("/jazzcash/direct-wallet", authenticate, async (req: AuthRequest, res) => {
+router.post("/jazzcash/direct-wallet", authenticate, requireNoActiveSubscription, async (req: AuthRequest, res) => {
   try {
     const { plan, mobileNumber } = req.body;
     if (!plan || !mobileNumber) {
@@ -187,7 +202,7 @@ router.post("/jazzcash/direct-wallet", authenticate, async (req: AuthRequest, re
 });
 
 // 💳 JazzCash Direct Card — Credit/Debit Card Direct checkout
-router.post("/jazzcash/direct-card", authenticate, async (req: AuthRequest, res) => {
+router.post("/jazzcash/direct-card", authenticate, requireNoActiveSubscription, async (req: AuthRequest, res) => {
   try {
     const { plan, cardNumber, cardExpiry, cardCvv, cardHolder } = req.body;
     if (!plan || !cardNumber || !cardExpiry || !cardCvv || !cardHolder) {
