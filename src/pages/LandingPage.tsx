@@ -33,16 +33,40 @@ export function LandingPage() {
           ))}
         </div>
 
-        <div className="mt-12 grid gap-4 sm:grid-cols-3">
+        <div className="mt-12 grid gap-4 grid-cols-1 sm:grid-cols-3">
           {[
-            { name: "Basic", price: "27,800 PKR", period: "1 Month" },
-            { name: "Standard", price: "83,400 PKR", period: "3 Months" },
-            { name: "Pro", price: "139,000 PKR", period: "6 Months" },
+            { id: "basic", name: "Basic", price: "27,800 PKR", usd: "$100", period: "1 Month" },
+            { id: "standard", name: "Standard", price: "83,400 PKR", usd: "$300", period: "3 Months", popular: true },
+            { id: "pro", name: "Pro", price: "139,000 PKR", usd: "$500", period: "6 Months" },
           ].map((p) => (
-            <div key={p.name} className="rounded-2xl border border-violet-500/20 bg-violet-500/5 p-5">
-              <h3 className="font-bold text-violet-300">{p.name}</h3>
-              <p className="text-2xl font-black mt-2">{p.price}</p>
-              <p className="text-xs text-slate-500">{p.period}</p>
+            <div
+              key={p.name}
+              className={`relative rounded-2xl border p-6 flex flex-col items-center text-center transition-all duration-300 hover:scale-[1.03] ${
+                p.popular
+                  ? "border-violet-500/50 bg-violet-500/10 ring-2 ring-violet-500/30 shadow-lg shadow-violet-900/20"
+                  : "border-violet-500/20 bg-violet-500/5 hover:border-violet-500/40"
+              }`}
+            >
+              {p.popular && (
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-1 text-[10px] font-bold uppercase tracking-wider text-white shadow-lg">
+                  Most Popular
+                </span>
+              )}
+              <h3 className="font-bold text-lg text-violet-300">{p.name}</h3>
+              <p className="text-3xl font-black mt-3">{p.price}</p>
+              <p className="text-sm text-slate-400 mt-1">{p.usd} USD</p>
+              <p className="text-xs text-slate-500 mt-1">{p.period}</p>
+              <Link to={`/register?plan=${p.id}`} className="w-full mt-5">
+                <Button
+                  className={`w-full py-2.5 text-sm font-semibold ${
+                    p.popular
+                      ? "bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500"
+                      : ""
+                  }`}
+                >
+                  Subscribe Now
+                </Button>
+              </Link>
             </div>
           ))}
         </div>

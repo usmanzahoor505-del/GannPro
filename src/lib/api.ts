@@ -82,6 +82,26 @@ export const api = {
       body: JSON.stringify({ plan }),
     }),
 
+  payWithDirectWallet: (plan: string, mobileNumber: string) =>
+    request<{ success: boolean; message: string; payment: any }>("/payments/jazzcash/direct-wallet", {
+      method: "POST",
+      body: JSON.stringify({ plan, mobileNumber }),
+    }),
+
+  payWithDirectCard: (
+    plan: string,
+    cardDetails: {
+      cardNumber: string;
+      cardExpiry: string;
+      cardCvv: string;
+      cardHolder: string;
+    }
+  ) =>
+    request<{ success: boolean; message: string; payment: any }>("/payments/jazzcash/direct-card", {
+      method: "POST",
+      body: JSON.stringify({ plan, ...cardDetails }),
+    }),
+
   getReceipt: (receiptNo: string) =>
     request<{ receipt: Receipt }>(`/payments/receipt/${receiptNo}`),
 

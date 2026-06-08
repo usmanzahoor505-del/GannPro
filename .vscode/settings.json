@@ -1,0 +1,4 @@
+{
+    "chat.utilitySmallModel": "ollama/deepseek-coder:1.3b",
+    "chat.utilityModel": "ollama/deepseek-coder:6.7b"
+}

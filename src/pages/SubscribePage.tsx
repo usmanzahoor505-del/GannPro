@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
 import { api, Plan } from "@/lib/api";
 import { PAYMENT_APPS, PLAN_AMOUNTS } from "@/lib/plans";
@@ -14,9 +15,12 @@ type Step = "plans" | "payment" | "confirm";
 export function SubscribePage() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
+  const initialPlan = searchParams.get("plan") || "";
+
   const [plans, setPlans] = useState<Plan[]>([]);
   const [step, setStep] = useState<Step>("plans");
-  const [selectedPlan, setSelectedPlan] = useState("");
+  const [selectedPlan, setSelectedPlan] = useState(initialPlan);
   const [name, setName] = useState(user?.name || "");
   const [email, setEmail] = useState(user?.email || "");
   const [phone, setPhone] = useState("");
@@ -51,43 +55,22 @@ export function SubscribePage() {
     setStep("payment");
   };
 
-  const handleJazzCashCheckout = async () => {
-    setRedirecting(true);
-    try {
-      const { url, payload } = await api.initiateJazzCashPayment(selectedPlan);
-      
-      // Create hidden form for JazzCash POST
-      const form = document.createElement("form");
-      form.method = "POST";
-      form.action = url;
-
-      Object.entries(payload).forEach(([key, val]) => {
-        const input = document.createElement("input");
-        input.type = "hidden";
-        input.name = key;
-        input.value = val as string;
-        form.appendChild(input);
-      });
-
-      document.body.appendChild(form);
-      form.submit();
-    } catch (err: any) {
-      toast(err.message || "Failed to initiate JazzCash payment", "error");
-      setRedirecting(false);
-    }
-  };
-
   const handleManualPayment = async (appId: string) => {
-    const app = PAYMENT_APPS.find((a) => a.id === appId);
-    setSelectedApp(appId);
-
     if (appId === "card") {
-      setShowQr(false);
+      setSelectedApp("card");
       setStep("confirm");
       return;
     }
 
+    if (appId === "jazzcash") {
+      setSelectedApp("jazzcash");
+      setStep("confirm");
+      return;
+    }
+
+    const app = PAYMENT_APPS.find((a) => a.id === appId);
     if (!app) return;
+    setSelectedApp(appId);
     setRedirecting(true);
 
     if (app.deepLink) {
@@ -106,10 +89,33 @@ export function SubscribePage() {
   const handleSubmitProof = async (e: React.FormEvent) => {
     e.preventDefault();
     const isCard = selectedApp === "card";
-    const cardDigits = cardNumber.replace(/\D/g, "");
-    const cardExpiryMatch = cardExpiry.match(/^(0[1-9]|1[0-2])\/(\d{2}|\d{4})$/);
+    const isJazzCash = selectedApp === "jazzcash";
+    const isEasyPaisa = selectedApp === "easypaisa";
+
+    if (isJazzCash) {
+      const cleanedPhone = phone.replace(/\s/g, "");
+      if (!cleanedPhone || !/^03[0-9]{9}$/.test(cleanedPhone)) {
+        toast("Please enter a valid JazzCash mobile number (e.g. 03001234567)", "error");
+        return;
+      }
+
+      setSubmitting(true);
+      try {
+        const response = await api.payWithDirectWallet(selectedPlan, cleanedPhone);
+        toast(response.message || "Payment approved successfully!", "success");
+        window.location.href = "/dashboard";
+      } catch (err: any) {
+        toast(err.message || "JazzCash payment failed. Please try again.", "error");
+      } finally {
+        setSubmitting(false);
+      }
+      return;
+    }
 
     if (isCard) {
+      const cardDigits = cardNumber.replace(/\D/g, "");
+      const cardExpiryMatch = cardExpiry.match(/^(0[1-9]|1[0-2])\/(\d{2}|\d{4})$/);
+
       if (!cardHolder.trim()) {
         toast("Name on card is required", "error");
         return;
@@ -126,17 +132,33 @@ export function SubscribePage() {
         toast("Please enter a valid CVV", "error");
         return;
       }
-      const last4 = cardDigits.slice(-4);
-      setCardLast4(last4);
-    } else {
-      if (!transactionId) {
-        toast("Transaction ID is required", "error");
-        return;
+
+      setSubmitting(true);
+      try {
+        const response = await api.payWithDirectCard(selectedPlan, {
+          cardNumber: cardDigits,
+          cardExpiry: cardExpiry,
+          cardCvv: cardCvv,
+          cardHolder: cardHolder.trim(),
+        });
+        toast(response.message || "Card charged successfully!", "success");
+        window.location.href = "/dashboard";
+      } catch (err: any) {
+        toast(err.message || "Card payment failed. Please try again.", "error");
+      } finally {
+        setSubmitting(false);
       }
-      if (!screenshot) {
-        toast("Screenshot is required", "error");
-        return;
-      }
+      return;
+    }
+
+    // Manual upload methods (EasyPaisa or others)
+    if (!transactionId) {
+      toast("Transaction ID is required", "error");
+      return;
+    }
+    if (!isEasyPaisa && !screenshot) {
+      toast("Screenshot is required", "error");
+      return;
     }
 
     setSubmitting(true);
@@ -144,10 +166,7 @@ export function SubscribePage() {
       const fd = new FormData();
       fd.append("plan", selectedPlan);
       if (transactionId) fd.append("transactionId", transactionId);
-      fd.append("paymentMethod", selectedApp || "card");
-      fd.append("cardHolder", cardHolder);
-      fd.append("cardLast4", cardLast4 || cardNumber.slice(-4));
-      fd.append("cardExpiry", cardExpiry);
+      fd.append("paymentMethod", selectedApp || "easypaisa");
       if (screenshot) fd.append("screenshot", screenshot);
       const response = await api.submitPayment(fd);
       toast(response.message || "Payment submitted successfully.", "success");
@@ -170,7 +189,7 @@ export function SubscribePage() {
         {/* Step 1: Plans + Form */}
         {step === "plans" && (
           <div className="space-y-6">
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
               {plans.map((plan) => (
                 <button
                   key={plan.id}
@@ -215,7 +234,7 @@ export function SubscribePage() {
                   ))}
                 </select>
               </div>
-              <Button onClick={handlePayNow} className="w-full text-base py-3">PAY NOW</Button>
+              <Button onClick={handlePayNow} className="w-full text-base py-3 animate-pulse hover:animate-none">PAY NOW</Button>
             </div>
           </div>
         )}
@@ -223,38 +242,45 @@ export function SubscribePage() {
         {/* Step 2: Payment Method Selection */}
         {step === "payment" && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-            <div className="w-full max-w-2xl rounded-2xl border border-violet-500/20 bg-gradient-to-br from-[#0b1120] to-[#1a1f3a] p-8">
+            <div className="w-full max-w-xl rounded-2xl border border-violet-500/20 bg-gradient-to-br from-[#0b1120] to-[#161a30] p-6 sm:p-8">
               <h2 className="text-2xl font-bold text-center mb-2 text-white">Complete Payment</h2>
-              <p className="text-center text-slate-400 mb-2">Plan: <span className="text-violet-300 font-semibold">{plans.find(p => p.id === selectedPlan)?.name}</span></p>
-              <p className="text-center text-lg font-bold text-violet-300 mb-8">
-                {amount.toLocaleString()} PKR (~${PLAN_AMOUNTS[selectedPlan] / 1000 * 82 | 0})
+              <p className="text-center text-slate-400 mb-2">
+                Plan: <span className="text-violet-300 font-semibold">{plans.find(p => p.id === selectedPlan)?.name}</span>
+              </p>
+              <p className="text-center text-lg font-bold text-violet-300 mb-6">
+                {amount.toLocaleString()} PKR
               </p>
 
               {redirecting ? (
-                <div className="flex flex-col items-center justify-center py-16">
+                <div className="flex flex-col items-center justify-center py-12">
                   <div className="h-12 w-12 animate-spin rounded-full border-3 border-violet-500 border-t-transparent mb-4" />
-                  <p className="text-slate-300 font-medium">Processing your payment...</p>
-                  <p className="text-slate-500 text-sm mt-2">You'll be redirected to JazzCash in moments</p>
+                  <p className="text-slate-300 font-medium font-sans">Processing your payment...</p>
+                  <p className="text-slate-500 text-sm mt-2">You'll be redirected in moments</p>
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {/* JazzCash Primary Button */}
+                  {/* JazzCash Wallet (Primary Auto-Approve Option) */}
                   <button
-                    onClick={handleJazzCashCheckout}
-                    className="w-full group relative rounded-2xl border-2 border-violet-500 bg-gradient-to-r from-violet-600/20 to-violet-500/20 p-6 hover:from-violet-600/30 hover:to-violet-500/30 transition-all duration-300 overflow-hidden"
+                    onClick={() => handleManualPayment("jazzcash")}
+                    className="w-full group relative rounded-2xl border-2 border-violet-500 bg-gradient-to-r from-violet-600/20 to-violet-500/10 p-5 hover:from-violet-600/30 hover:to-violet-500/20 transition-all duration-300 overflow-hidden text-left"
                   >
                     <div className="absolute inset-0 bg-gradient-to-r from-violet-500 to-violet-400 opacity-0 group-hover:opacity-5 transition-opacity" />
                     <div className="relative flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="h-14 w-14 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center">
-                          <span className="text-2xl">💳</span>
+                      <div className="flex items-center gap-3.5">
+                        <div className="h-12 w-12 rounded-xl bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-2xl">
+                          📱
                         </div>
-                        <div className="text-left">
-                          <p className="font-bold text-lg text-white">JazzCash Hosted Checkout</p>
-                          <p className="text-sm text-slate-400">Secure payment gateway • Instant confirmation</p>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="font-bold text-base text-white">JazzCash Wallet</p>
+                            <span className="rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-medium text-emerald-400 ring-1 ring-emerald-500/20">
+                              Instant Auto-Approve
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-400 mt-0.5">Pay via wallet push MPIN prompt • No screenshot required</p>
                         </div>
                       </div>
-                      <div className="text-2xl">→</div>
+                      <div className="text-xl text-violet-300 group-hover:translate-x-1 transition-transform">→</div>
                     </div>
                   </button>
 
@@ -263,37 +289,42 @@ export function SubscribePage() {
                       <div className="w-full border-t border-white/10" />
                     </div>
                     <div className="relative flex justify-center">
-                      <span className="bg-[#0b1120] px-3 text-xs text-slate-500">OR</span>
+                      <span className="bg-[#0c1222] px-3 text-[10px] uppercase tracking-wider text-slate-500">Other Payment Methods</span>
                     </div>
                   </div>
 
                   {/* Alternative Methods */}
-                  <div className="grid grid-cols-2 gap-3">
-                    {PAYMENT_APPS.filter(a => a.id !== "jazzcash").map((app) => (
-                      <button
-                        key={app.id}
-                        onClick={() => handleManualPayment(app.id)}
-                        className="flex flex-col items-center gap-2 rounded-xl border border-white/10 bg-white/[0.02] p-4 hover:border-slate-400 hover:bg-white/5 transition-all active:scale-95"
-                      >
-                        <div className="h-10 w-10 flex items-center justify-center">
-                          {app.logo}
-                        </div>
-                        <span className="text-xs font-medium text-center">{app.name}</span>
-                      </button>
-                    ))}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <button
-                      key="card"
                       onClick={() => handleManualPayment("card")}
-                      className="flex flex-col items-center gap-2 rounded-xl border border-white/10 bg-white/[0.02] p-4 hover:border-slate-400 hover:bg-white/5 transition-all active:scale-95"
+                      className="flex items-center gap-3 rounded-xl border border-violet-500/30 bg-gradient-to-r from-violet-600/10 to-violet-500/5 p-4 hover:border-violet-400 hover:bg-violet-600/20 transition-all active:scale-98 text-left"
                     >
-                      <div className="h-10 w-10 flex items-center justify-center text-2xl">💳</div>
-                      <span className="text-xs font-medium text-center">Card / Debit</span>
+                      <div className="h-10 w-10 flex items-center justify-center text-xl bg-white/5 rounded-lg">💳</div>
+                      <div>
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs font-bold text-white">Card / Debit</span>
+                        </div>
+                        <span className="text-[10px] text-emerald-400 block font-medium">Auto-Approve</span>
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={() => handleManualPayment("easypaisa")}
+                      className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.02] p-4 hover:border-slate-500 hover:bg-white/5 transition-all active:scale-98 text-left"
+                    >
+                      <div className="h-10 w-10 flex items-center justify-center bg-white/5 rounded-lg">
+                        <span className="text-xs font-bold text-[#00A651]">EP</span>
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-white">EasyPaisa</span>
+                        <span className="text-[10px] text-amber-500 block font-medium">Manual Review</span>
+                      </div>
                     </button>
                   </div>
 
                   <Button 
                     variant="ghost" 
-                    className="w-full mt-6" 
+                    className="w-full mt-6 text-sm text-slate-400" 
                     onClick={() => setStep("plans")}
                   >
                     ← Back to Plans
@@ -306,36 +337,24 @@ export function SubscribePage() {
 
         {/* Step 3: Confirm Payment */}
         {step === "confirm" && (
-          <div className="space-y-6">
-            {selectedApp !== "card" ? (
-              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
-                <h3 className="font-bold text-lg text-violet-300 mb-2">Confirm payment for {selectedPaymentMethod}</h3>
-                <p className="text-sm text-slate-400 mb-4">Upload transaction details to complete your subscription. Auto approval is enabled for JazzCash, EasyPaisa, and Card.</p>
-                <div className="grid gap-4 sm:grid-cols-3 text-sm text-slate-300">
-                  <div className="rounded-xl bg-white/[0.02] border border-white/5 p-4">
-                    <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Account Number</p>
-                    <p className="font-mono font-semibold text-white text-base">01099716270</p>
+          <div className="space-y-6 animate-fadeIn">
+            {selectedApp === "jazzcash" && (
+              <div className="rounded-2xl border border-violet-500/20 bg-gradient-to-r from-violet-600/10 to-violet-500/5 p-6 border-white/10">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
+                  <div>
+                    <h3 className="font-bold text-xl text-violet-300">JazzCash Wallet Checkout</h3>
+                    <p className="text-sm text-slate-400 mt-1">
+                      Enter your mobile number. You'll receive a secure MPIN authorization request on your phone.
+                    </p>
                   </div>
-                  <div className="rounded-xl bg-white/[0.02] border border-white/5 p-4">
-                    <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">IBAN</p>
-                    <p className="font-mono font-semibold text-white text-xs break-all">PK82JCMA3005921099716270</p>
-                  </div>
-                  <div className="rounded-xl bg-white/[0.02] border border-white/5 p-4">
-                    <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">JazzCash</p>
-                    <p className="font-mono font-semibold text-white text-base">03099716270</p>
-                  </div>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-400 ring-1 ring-inset ring-emerald-500/20 self-start sm:self-center">
+                    ⚡ Auto Approved
+                  </span>
                 </div>
-              </div>
-            ) : (
-              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
-                <h3 className="font-bold text-lg text-violet-300 mb-2">Card payment details</h3>
-                <p className="text-sm text-slate-400 mb-4">
-                  Enter only the last 4 digits and card holder name for verification. Your subscription will be auto-approved after submission.
-                </p>
-                <div className="grid gap-4 sm:grid-cols-2 text-sm text-slate-300">
+                <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 text-sm text-slate-300">
                   <div className="rounded-xl bg-white/[0.02] border border-white/5 p-4">
                     <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Payment Method</p>
-                    <p className="font-semibold text-white">Card / Debit</p>
+                    <p className="font-semibold text-white">JazzCash Mobile Wallet</p>
                   </div>
                   <div className="rounded-xl bg-white/[0.02] border border-white/5 p-4">
                     <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Plan Amount</p>
@@ -345,94 +364,194 @@ export function SubscribePage() {
               </div>
             )}
 
-            {showQr && selectedApp !== "card" && (
-              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 text-center">
-                <p className="text-sm text-slate-400 mb-4">App not opening? Scan QR code instead</p>
-                <div className="inline-block rounded-2xl bg-white p-4">
-                  <QRCodeSVG value={qrValue} size={256} />
+            {selectedApp === "card" && (
+              <div className="rounded-2xl border border-violet-500/20 bg-gradient-to-r from-violet-600/10 to-violet-500/5 p-6 border-white/10">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
+                  <div>
+                    <h3 className="font-bold text-xl text-violet-300">Credit / Debit Card Checkout</h3>
+                    <p className="text-sm text-slate-400 mt-1">
+                      Enter card details to pay securely via JazzCash Card merchant gateway.
+                    </p>
+                  </div>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-400 ring-1 ring-inset ring-emerald-500/20 self-start sm:self-center">
+                    ⚡ Auto Approved
+                  </span>
                 </div>
-                <p className="text-xs text-slate-500 mt-3">QR regenerates based on selected plan ({amount.toLocaleString()} PKR)</p>
+                <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 text-sm text-slate-300">
+                  <div className="rounded-xl bg-white/[0.02] border border-white/5 p-4">
+                    <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Payment Method</p>
+                    <p className="font-semibold text-white">Credit / Debit Card (Visa/Mastercard)</p>
+                  </div>
+                  <div className="rounded-xl bg-white/[0.02] border border-white/5 p-4">
+                    <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Plan Amount</p>
+                    <p className="font-semibold text-white">{amount.toLocaleString()} PKR</p>
+                  </div>
+                </div>
               </div>
             )}
 
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
-              <h2 className="text-lg font-bold mb-4">Confirm Your Payment</h2>
-              <form onSubmit={handleSubmitProof} className="space-y-4">
-                {selectedApp !== "card" && (
+            {selectedApp !== "jazzcash" && selectedApp !== "card" && (
+              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
-                    <Label>Transaction ID / Reference Number</Label>
-                    <Input value={transactionId} onChange={(e) => setTransactionId(e.target.value)} required placeholder="e.g. T1234567890" />
+                    <h3 className="font-bold text-lg text-violet-300">Confirm payment for {selectedPaymentMethod}</h3>
+                    <p className="text-sm text-slate-400 mt-1">
+                      Please send payment to the account details below and submit your receipt.
+                    </p>
                   </div>
-                )}
-                {selectedApp === "card" && (
-                  <div className="space-y-4">
-                    <div>
-                      <Label>Card Number</Label>
-                      <Input
-                        value={cardNumber}
-                        onChange={(e) => setCardNumber(e.target.value)}
-                        placeholder="1234 5678 9012 3456"
-                        inputMode="numeric"
-                        required
-                      />
-                    </div>
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <div>
-                        <Label>Expiration Date</Label>
-                        <Input
-                          value={cardExpiry}
-                          onChange={(e) => setCardExpiry(e.target.value)}
-                          placeholder="MM/YY"
-                          inputMode="numeric"
-                          required
-                        />
-                      </div>
-                      <div>
-                        <Label>CVV</Label>
-                        <Input
-                          value={cardCvv}
-                          onChange={(e) => setCardCvv(e.target.value)}
-                          placeholder="123"
-                          type="password"
-                          inputMode="numeric"
-                          maxLength={4}
-                          required
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <Label>Name on Card</Label>
-                      <Input
-                        value={cardHolder}
-                        onChange={(e) => setCardHolder(e.target.value)}
-                        placeholder="As shown on card"
-                        required
-                      />
-                    </div>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-3 py-1 text-xs font-medium text-amber-400 ring-1 ring-inset ring-amber-500/20 self-start sm:self-center font-semibold">
+                    ⏳ Admin Approval Required
+                  </span>
+                </div>
+                <div className="grid gap-3 grid-cols-1 sm:grid-cols-3 text-sm text-slate-300">
+                  <div className="rounded-xl bg-white/[0.02] border border-white/5 p-4">
+                    <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Account Number</p>
+                    <p className="font-mono font-semibold text-white text-base">01099716270</p>
                   </div>
-                )}
-                {selectedApp !== "card" && (
+                  <div className="rounded-xl bg-white/[0.02] border border-white/5 p-4">
+                    <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">IBAN</p>
+                    <p className="font-mono font-semibold text-white text-xs break-all">PK82JCMA3005921099716270</p>
+                  </div>
+                  <div className="rounded-xl bg-white/[0.02] border border-white/5 p-4">
+                    <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">JazzCash Number</p>
+                    <p className="font-mono font-semibold text-white text-base">03099716270</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmitProof} className="space-y-6">
+              {showQr && selectedApp !== "card" && selectedApp !== "jazzcash" && (
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 text-center">
+                  <p className="text-sm text-slate-400 mb-4">App not opening? Scan QR code instead</p>
+                  <div className="inline-block rounded-2xl bg-white p-4">
+                    <QRCodeSVG value={qrValue} size={256} />
+                  </div>
+                  <p className="text-xs text-slate-500 mt-3">QR regenerates based on selected plan ({amount.toLocaleString()} PKR)</p>
+                </div>
+              )}
+
+              {selectedApp === "easypaisa" && !showQr && (
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 text-center">
+                  <p className="text-sm text-slate-400">EasyPaisa app should open now. If it does not, open EasyPaisa and send payment manually.</p>
+                </div>
+              )}
+
+              {selectedApp === "easypaisa" && (
+                <div>
+                  <Label>Transaction ID / Reference Number</Label>
+                  <Input value={transactionId} onChange={(e) => setTransactionId(e.target.value)} placeholder="Enter EasyPaisa transaction ID" required />
+                </div>
+              )}
+
+              {selectedApp === "card" && (
+                <div className="space-y-4 bg-white/[0.02] border border-white/10 rounded-2xl p-5 sm:p-6">
                   <div>
-                    <Label>Payment Screenshot</Label>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => setScreenshot(e.target.files?.[0] || null)}
-                      className="w-full text-sm text-slate-400 file:mr-4 file:rounded-lg file:border-0 file:bg-violet-600 file:px-4 file:py-2 file:text-sm file:text-white"
+                    <Label className="text-slate-300 font-medium text-sm">Card Number</Label>
+                    <Input
+                      value={cardNumber}
+                      onChange={(e) => setCardNumber(e.target.value)}
+                      placeholder="1234 5678 9012 3456"
+                      inputMode="numeric"
+                      className="mt-1 bg-[#0b1120]"
                       required
                     />
                   </div>
-                )}
-                <Button type="submit" loading={submitting} className="w-full">
-                  Submit Payment {selectedApp === "card" ? "Details" : "Proof"}
-                </Button>
-              </form>
-              <p className="text-xs text-slate-500 mt-3 text-center">
+                  <div className="grid gap-4 grid-cols-2">
+                    <div>
+                      <Label className="text-slate-300 font-medium text-sm">Expiration Date</Label>
+                      <Input
+                        value={cardExpiry}
+                        onChange={(e) => setCardExpiry(e.target.value)}
+                        placeholder="MM/YY"
+                        inputMode="numeric"
+                        className="mt-1 bg-[#0b1120]"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-slate-300 font-medium text-sm">CVV</Label>
+                      <Input
+                        value={cardCvv}
+                        onChange={(e) => setCardCvv(e.target.value)}
+                        placeholder="123"
+                        type="password"
+                        inputMode="numeric"
+                        maxLength={4}
+                        className="mt-1 bg-[#0b1120]"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-slate-300 font-medium text-sm">Name on Card</Label>
+                    <Input
+                      value={cardHolder}
+                      onChange={(e) => setCardHolder(e.target.value)}
+                      placeholder="As shown on card"
+                      className="mt-1 bg-[#0b1120]"
+                      required
+                    />
+                  </div>
+                </div>
+              )}
+
+              {selectedApp === "jazzcash" && (
+                <div className="space-y-4 bg-white/[0.02] border border-white/10 rounded-2xl p-5 sm:p-6">
+                  <div>
+                    <Label className="text-slate-300 font-medium text-sm">JazzCash Mobile Wallet Number</Label>
+                    <Input
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="e.g. 03001234567"
+                      inputMode="numeric"
+                      className="mt-1 font-semibold text-lg bg-[#0b1120]"
+                      required
+                    />
+                    <p className="text-xs text-slate-500 mt-2">
+                      Make sure your phone is active and unlocked to receive the MPIN verification prompt.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {selectedApp !== "card" && selectedApp !== "jazzcash" && selectedApp !== "easypaisa" && (
+                <div>
+                  <Label>Payment Screenshot</Label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setScreenshot(e.target.files?.[0] || null)}
+                    className="w-full text-sm text-slate-400 file:mr-4 file:rounded-lg file:border-0 file:bg-violet-600 file:px-4 file:py-2 file:text-sm file:text-white mt-1"
+                    required
+                  />
+                </div>
+              )}
+
+              <Button type="submit" loading={submitting} className="w-full text-base py-3 bg-violet-600 hover:bg-violet-700 transition-all font-semibold rounded-xl">
                 {selectedApp === "card"
-                  ? "Your card payment submission will be auto-approved."
-                  : "Status will become \"Pending Admin Approval\" after submission."}
-              </p>
+                  ? "Pay with Card"
+                  : selectedApp === "jazzcash"
+                  ? "Pay with JazzCash Wallet"
+                  : "Submit Payment Proof"}
+              </Button>
+            </form>
+
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6">
+              <Button 
+                variant="ghost" 
+                className="w-full sm:w-auto text-sm text-slate-400"
+                onClick={() => setStep("payment")}
+              >
+                ← Change Payment Method
+              </Button>
             </div>
+            
+            <p className="text-xs text-slate-500 mt-3 text-center">
+              {["card", "jazzcash"].includes(selectedApp || "")
+                ? "Your payment will be auto-processed and instantly approved on success."
+                : "Manual verification is usually approved within 2-4 hours."}
+            </p>
           </div>
         )}
       </main>

@@ -8,7 +8,7 @@ import {
   uploadScreenshot,
   approveAutomaticPayment,
 } from "../services/payments.js";
-import { initiateJazzCashPayment, verifyCallbackHash } from "../services/jazzcash.js";
+import { initiateJazzCashPayment, verifyCallbackHash, initiateDirectWalletPayment, initiateDirectCardPayment } from "../services/jazzcash.js";
 import { config, PlanId } from "../config.js";
 
 const upload = multer({
@@ -43,7 +43,7 @@ router.post(
         return res.status(400).json({ error: "Plan and payment method are required" });
       }
 
-      const autoApprove = ["jazzcash", "easypaisa", "card"].includes(paymentMethod);
+      const autoApprove = ["jazzcash", "easypaisa"].includes(paymentMethod);
       let screenshotUrl: string | undefined;
 
       if (req.file) {
@@ -149,6 +149,79 @@ router.post("/jazzcash/callback", async (req, res) => {
   } catch (err: any) {
     console.error("Error handling JazzCash callback:", err);
     res.redirect(`${config.frontendUrl}/dashboard?payment=failed&reason=internal_error`);
+  }
+});
+
+// 💳 JazzCash Direct Wallet — Mobile Wallet Direct checkout
+router.post("/jazzcash/direct-wallet", authenticate, async (req: AuthRequest, res) => {
+  try {
+    const { plan, mobileNumber } = req.body;
+    if (!plan || !mobileNumber) {
+      return res.status(400).json({ error: "Plan and mobile number are required" });
+    }
+
+    const result = await initiateDirectWalletPayment(plan as PlanId, req.user!.userId, mobileNumber);
+
+    if (result.success) {
+      const paymentInfo = await approveAutomaticPayment(
+        req.user!.userId,
+        plan as PlanId,
+        result.txnRefNo || "JC-MWALLET"
+      );
+      res.json({
+        success: true,
+        message: "Payment authorized successfully! Your subscription is active.",
+        payment: paymentInfo.payment,
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        error: result.responseMessage || "Failed to authorize wallet payment",
+        code: result.responseCode,
+      });
+    }
+  } catch (err: any) {
+    console.error("Direct wallet error:", err);
+    res.status(500).json({ error: err.message || "Internal server error" });
+  }
+});
+
+// 💳 JazzCash Direct Card — Credit/Debit Card Direct checkout
+router.post("/jazzcash/direct-card", authenticate, async (req: AuthRequest, res) => {
+  try {
+    const { plan, cardNumber, cardExpiry, cardCvv, cardHolder } = req.body;
+    if (!plan || !cardNumber || !cardExpiry || !cardCvv || !cardHolder) {
+      return res.status(400).json({ error: "All card details are required" });
+    }
+
+    const result = await initiateDirectCardPayment(plan as PlanId, req.user!.userId, {
+      cardNumber,
+      cardExpiry,
+      cardCvv,
+      cardHolder,
+    });
+
+    if (result.success) {
+      const paymentInfo = await approveAutomaticPayment(
+        req.user!.userId,
+        plan as PlanId,
+        result.txnRefNo || "JC-CARD"
+      );
+      res.json({
+        success: true,
+        message: "Card charged successfully! Your subscription is active.",
+        payment: paymentInfo.payment,
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        error: result.responseMessage || "Card transaction failed",
+        code: result.responseCode,
+      });
+    }
+  } catch (err: any) {
+    console.error("Direct card error:", err);
+    res.status(500).json({ error: err.message || "Internal server error" });
   }
 });
 

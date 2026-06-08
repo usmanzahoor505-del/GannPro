@@ -104,3 +104,168 @@ export function verifyCallbackHash(responseBody: Record<string, string>): boolea
     return false;
   }
 }
+
+export async function initiateDirectWalletPayment(
+  plan: PlanId,
+  userId: string,
+  mobileNumber: string
+): Promise<{ success: boolean; responseCode: string; responseMessage: string; txnRefNo: string }> {
+  const { merchantId, password, integritySalt, apiUrl } = config.jazzcash;
+
+  // If credentials are mock or missing, simulate a successful transaction in development/sandbox
+  const isMock = !merchantId || merchantId.includes("TEST") || !password || !integritySalt || integritySalt.includes("TEST") || integritySalt === "";
+  
+  const now = new Date();
+  const expiry = new Date(now.getTime() + 60 * 60 * 1000); // 1 hour expiration
+  const amountPkr = PLANS[plan].pkr;
+  const amountPaisa = amountPkr * 100;
+  const txnRefNo = `T${now.getTime()}${Math.floor(100 + Math.random() * 900)}`;
+
+  if (isMock) {
+    console.log(`[JAZZCASH MOCK WALLET] Charging ${amountPkr} PKR to wallet: ${mobileNumber}`);
+    // Simulate API delay
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    return {
+      success: true,
+      responseCode: "000",
+      responseMessage: "MOCK: Transaction Success",
+      txnRefNo,
+    };
+  }
+
+  const payload: Record<string, string> = {
+    pp_Version: "1.1",
+    pp_TxnType: "MWALLET",
+    pp_Language: "EN",
+    pp_MerchantID: merchantId,
+    pp_Password: password,
+    pp_TxnRefNo: txnRefNo,
+    pp_Amount: String(amountPaisa),
+    pp_TxnCurrency: "PKR",
+    pp_TxnDateTime: getFormattedDateTime(now),
+    pp_BillReference: `${userId}#${plan}`,
+    pp_Description: `GannPro9 ${PLANS[plan].name} Plan Subscription`,
+    pp_TxnExpiryDateTime: getFormattedDateTime(expiry),
+    pp_MobileNumber: mobileNumber,
+    pp_SecureHash: "",
+  };
+
+  payload.pp_SecureHash = generateSecureHash(payload);
+
+  try {
+    const response = await fetch(apiUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json() as any;
+    console.log("JazzCash Wallet Direct API response:", data);
+
+    const responseCode = data.pp_ResponseCode || data.ResponseCode;
+    const responseMessage = data.pp_ResponseMessage || data.ResponseMessage || "Transaction Failed";
+
+    return {
+      success: responseCode === "000",
+      responseCode,
+      responseMessage,
+      txnRefNo,
+    };
+  } catch (err: any) {
+    console.error("JazzCash Wallet Direct API error:", err);
+    return {
+      success: false,
+      responseCode: "500",
+      responseMessage: err.message || "Failed to connect to JazzCash gateway",
+      txnRefNo,
+    };
+  }
+}
+
+export async function initiateDirectCardPayment(
+  plan: PlanId,
+  userId: string,
+  cardDetails: {
+    cardNumber: string;
+    cardExpiry: string;
+    cardCvv: string;
+    cardHolder: string;
+  }
+): Promise<{ success: boolean; responseCode: string; responseMessage: string; txnRefNo: string }> {
+  const { merchantId, password, integritySalt, cardApiUrl } = config.jazzcash;
+
+  // Clean card number & expiry
+  const cardNoClean = cardDetails.cardNumber.replace(/\D/g, "");
+  // expiry format is MM/YY, need MMYY
+  const expiryClean = cardDetails.cardExpiry.replace(/\D/g, "");
+
+  const isMock = !merchantId || merchantId.includes("TEST") || !password || !integritySalt || integritySalt.includes("TEST") || integritySalt === "";
+  
+  const now = new Date();
+  const expiry = new Date(now.getTime() + 60 * 60 * 1000); // 1 hour expiration
+  const amountPkr = PLANS[plan].pkr;
+  const amountPaisa = amountPkr * 100;
+  const txnRefNo = `T${now.getTime()}${Math.floor(100 + Math.random() * 900)}`;
+
+  if (isMock) {
+    console.log(`[JAZZCASH MOCK CARD] Charging ${amountPkr} PKR to card ending in: ${cardNoClean.slice(-4)}`);
+    // Simulate API delay
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    return {
+      success: true,
+      responseCode: "000",
+      responseMessage: "MOCK: Transaction Success",
+      txnRefNo,
+    };
+  }
+
+  const payload: Record<string, string> = {
+    pp_Version: "1.1",
+    pp_TxnType: "MPAY",
+    pp_Language: "EN",
+    pp_MerchantID: merchantId,
+    pp_Password: password,
+    pp_TxnRefNo: txnRefNo,
+    pp_Amount: String(amountPaisa),
+    pp_TxnCurrency: "PKR",
+    pp_TxnDateTime: getFormattedDateTime(now),
+    pp_BillReference: `${userId}#${plan}`,
+    pp_Description: `GannPro9 ${PLANS[plan].name} Plan Subscription`,
+    pp_TxnExpiryDateTime: getFormattedDateTime(expiry),
+    pp_CustomerCardNumber: cardNoClean,
+    pp_CustomerCardExpiry: expiryClean,
+    pp_CustomerCardCvv: cardDetails.cardCvv,
+    pp_SecureHash: "",
+  };
+
+  payload.pp_SecureHash = generateSecureHash(payload);
+
+  try {
+    const response = await fetch(cardApiUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json() as any;
+    console.log("JazzCash Card Direct API response:", data);
+
+    const responseCode = data.pp_ResponseCode || data.ResponseCode;
+    const responseMessage = data.pp_ResponseMessage || data.ResponseMessage || "Transaction Failed";
+
+    return {
+      success: responseCode === "000",
+      responseCode,
+      responseMessage,
+      txnRefNo,
+    };
+  } catch (err: any) {
+    console.error("JazzCash Card Direct API error:", err);
+    return {
+      success: false,
+      responseCode: "500",
+      responseMessage: err.message || "Failed to connect to JazzCash gateway",
+      txnRefNo,
+    };
+  }
+}

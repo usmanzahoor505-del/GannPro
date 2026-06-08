@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
@@ -17,6 +17,9 @@ export function RegisterPage() {
   const [cooldown, setCooldown] = useState(0);
   const { setUser, refreshSubscription } = useAuth();
   const { toast } = useToast();
+
+  const [searchParams] = useSearchParams();
+  const selectedPlan = searchParams.get("plan");
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,7 +43,12 @@ export function RegisterPage() {
       setUser(user);
       await refreshSubscription();
       toast("Account created! Your 3-day free trial has started.", "success");
-      window.location.href = "/dashboard";
+      
+      if (selectedPlan) {
+        window.location.href = `/subscribe?plan=${selectedPlan}`;
+      } else {
+        window.location.href = "/dashboard";
+      }
     } catch (err) {
       toast(err instanceof Error ? err.message : "Invalid OTP, try again", "error");
     } finally {
