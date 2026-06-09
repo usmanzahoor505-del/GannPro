@@ -92,59 +92,31 @@ export function SubscribePage() {
     const isJazzCash = selectedApp === "jazzcash";
     const isEasyPaisa = selectedApp === "easypaisa";
 
-    if (isJazzCash) {
-      const cleanedPhone = phone.replace(/\s/g, "");
-      if (!cleanedPhone || !/^03[0-9]{9}$/.test(cleanedPhone)) {
-        toast("Please enter a valid JazzCash mobile number (e.g. 03001234567)", "error");
-        return;
-      }
-
+    if (isJazzCash || isCard) {
       setSubmitting(true);
       try {
-        const response = await api.payWithDirectWallet(selectedPlan, cleanedPhone);
-        toast(response.message || "Payment approved successfully!", "success");
-        window.location.href = "/dashboard";
-      } catch (err: any) {
-        toast(err.message || "JazzCash payment failed. Please try again.", "error");
-      } finally {
-        setSubmitting(false);
-      }
-      return;
-    }
+        const { url, payload } = await api.initiateJazzCashPayment(selectedPlan);
 
-    if (isCard) {
-      const cardDigits = cardNumber.replace(/\D/g, "");
-      const cardExpiryMatch = cardExpiry.match(/^(0[1-9]|1[0-2])\/(\d{2}|\d{4})$/);
+        const form = document.createElement("form");
+        form.method = "POST";
+        form.action = url;
+        form.target = "_blank";
 
-      if (!cardHolder.trim()) {
-        toast("Name on card is required", "error");
-        return;
-      }
-      if (cardDigits.length < 13 || cardDigits.length > 19) {
-        toast("Please enter a valid card number", "error");
-        return;
-      }
-      if (!cardExpiryMatch) {
-        toast("Please enter a valid expiry date (MM/YY)", "error");
-        return;
-      }
-      if (!/^[0-9]{3,4}$/.test(cardCvv)) {
-        toast("Please enter a valid CVV", "error");
-        return;
-      }
-
-      setSubmitting(true);
-      try {
-        const response = await api.payWithDirectCard(selectedPlan, {
-          cardNumber: cardDigits,
-          cardExpiry: cardExpiry,
-          cardCvv: cardCvv,
-          cardHolder: cardHolder.trim(),
+        Object.entries(payload).forEach(([key, value]) => {
+          const input = document.createElement("input");
+          input.type = "hidden";
+          input.name = key;
+          input.value = String(value);
+          form.appendChild(input);
         });
-        toast(response.message || "Card charged successfully!", "success");
-        window.location.href = "/dashboard";
+
+        document.body.appendChild(form);
+        form.submit();
+        form.remove();
+
+        toast("Redirecting to JazzCash checkout…", "info");
       } catch (err: any) {
-        toast(err.message || "Card payment failed. Please try again.", "error");
+        toast(err.message || "JazzCash checkout failed. Please try again.", "error");
       } finally {
         setSubmitting(false);
       }
