@@ -112,8 +112,15 @@ export async function initiateDirectWalletPayment(
 ): Promise<{ success: boolean; responseCode: string; responseMessage: string; txnRefNo: string; responseStatus?: number; rawResponse?: string }> {
   const { merchantId, password, integritySalt, apiUrl } = config.jazzcash;
 
-  // If credentials are mock or missing, simulate a successful transaction in development/sandbox
-  const isMock = !merchantId || merchantId.includes("TEST") || !password || !integritySalt || integritySalt.includes("TEST") || integritySalt === "";
+  // If JAZZCASH_MOCK=true OR credentials are missing/test — simulate success
+  const isMock =
+    process.env.JAZZCASH_MOCK === "true" ||
+    !merchantId ||
+    merchantId.includes("TEST") ||
+    !password ||
+    !integritySalt ||
+    integritySalt.includes("TEST") ||
+    integritySalt === "";
   
   const now = new Date();
   const expiry = new Date(now.getTime() + 60 * 60 * 1000); // 1 hour expiration
@@ -215,7 +222,15 @@ export async function initiateDirectCardPayment(
   // expiry format is MM/YY, need MMYY
   const expiryClean = cardDetails.cardExpiry.replace(/\D/g, "");
 
-  const isMock = !merchantId || merchantId.includes("TEST") || !password || !integritySalt || integritySalt.includes("TEST") || integritySalt === "";
+  // If JAZZCASH_MOCK=true OR credentials are missing/test — simulate success
+  const isMock =
+    process.env.JAZZCASH_MOCK === "true" ||
+    !merchantId ||
+    merchantId.includes("TEST") ||
+    !password ||
+    !integritySalt ||
+    integritySalt.includes("TEST") ||
+    integritySalt === "";
   
   const now = new Date();
   const expiry = new Date(now.getTime() + 60 * 60 * 1000); // 1 hour expiration
