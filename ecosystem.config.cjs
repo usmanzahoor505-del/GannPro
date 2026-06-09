@@ -3,7 +3,8 @@ module.exports = {
     {
       name: "gannpro9-api",
       cwd: "./",
-      script: "server/dist/index.js",
+      script: "npm",
+      args: ["run", "start:prod"],
       instances: 1,
       autorestart: true,
       watch: false,

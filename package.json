@@ -10,7 +10,8 @@
     "build": "vite build && npm run build:server",
     "build:server": "tsc -p server/tsconfig.json",
     "preview": "vite preview",
-    "start": "node server/dist/index.js"
+    "start": "node server/dist/index.js",
+    "start:prod": "tsx server/index.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.8",
