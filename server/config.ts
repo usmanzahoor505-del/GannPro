@@ -13,7 +13,10 @@ function required(key: string): string {
 export const config = {
   port: parseInt(process.env.PORT || "3001", 10),
   nodeEnv: process.env.NODE_ENV || "development",
-  frontendUrl: process.env.FRONTEND_URL || "http://localhost:5173",
+  frontendUrl:
+    process.env.FRONTEND_URL ||
+    process.env.VITE_FRONTEND_URL ||
+    "https://www.ganntradingsignal.cloud",
 
   jwt: {
     accessSecret: process.env.JWT_ACCESS_SECRET || "dev-access-secret-change-me",

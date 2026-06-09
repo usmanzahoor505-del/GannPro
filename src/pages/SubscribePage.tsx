@@ -327,7 +327,7 @@ export function SubscribePage() {
                       </div>
                       <div>
                         <span className="text-xs font-bold text-white">EasyPaisa</span>
-                        <span className="text-[10px] text-amber-500 block font-medium">Manual Review</span>
+                        <span className="text-[10px] text-emerald-400 block font-medium">Auto-Approve</span>
                       </div>
                     </button>
                   </div>
@@ -409,8 +409,12 @@ export function SubscribePage() {
                       Please send payment to the account details below and submit your receipt.
                     </p>
                   </div>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-3 py-1 text-xs font-medium text-amber-400 ring-1 ring-inset ring-amber-500/20 self-start sm:self-center font-semibold">
-                    ⏳ Admin Approval Required
+                  <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium ring-1 ring-inset self-start sm:self-center font-semibold ${
+                    selectedApp === "easypaisa"
+                      ? "bg-emerald-500/10 text-emerald-400 ring-emerald-500/20"
+                      : "bg-amber-500/10 text-amber-400 ring-amber-500/20"
+                  }`}>
+                    {selectedApp === "easypaisa" ? "⚡ Auto Approved" : "⏳ Admin Approval Required"}
                   </span>
                 </div>
                 <div className="grid gap-3 grid-cols-1 sm:grid-cols-3 text-sm text-slate-300">
@@ -558,8 +562,8 @@ export function SubscribePage() {
             </div>
             
             <p className="text-xs text-slate-500 mt-3 text-center">
-              {["card", "jazzcash"].includes(selectedApp || "")
-                ? "Your payment will be auto-processed and instantly approved on success."
+              {["card", "jazzcash", "easypaisa"].includes(selectedApp || "")
+                ? "Your payment will be auto-processed and approved on success."
                 : "Manual verification is usually approved within 2-4 hours."}
             </p>
           </div>
