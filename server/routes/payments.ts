@@ -177,6 +177,8 @@ router.post("/jazzcash/direct-wallet", authenticate, requireNoActiveSubscription
 
     const result = await initiateDirectWalletPayment(plan as PlanId, req.user!.userId, mobileNumber);
 
+    console.log("[direct-wallet] JazzCash result:", JSON.stringify(result));
+
     if (result.success) {
       const paymentInfo = await approveAutomaticPayment(
         req.user!.userId,
@@ -189,14 +191,16 @@ router.post("/jazzcash/direct-wallet", authenticate, requireNoActiveSubscription
         payment: paymentInfo.payment,
       });
     } else {
+      console.error("[direct-wallet] FAILED:", result.responseCode, result.responseMessage, result.rawResponse);
       res.status(400).json({
         success: false,
         error: result.responseMessage || "Failed to authorize wallet payment",
         code: result.responseCode,
-        status: result.responseStatus,
-        rawResponse: result.rawResponse,
+        httpStatus: result.responseStatus,
+        detail: result.rawResponse,
       });
     }
+
   } catch (err: any) {
     console.error("Direct wallet error:", err);
     res.status(500).json({ error: err.message || "Internal server error" });
