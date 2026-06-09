@@ -21,7 +21,7 @@ export function UserDashboardPage() {
   const approvedPayment = payments.find((p) => p.status === "approved" && p.receipt_id);
 
   return (
-    <div className="min-h-screen bg-[#05070f] text-white">
+    <div className="min-h-screen bg-[#05070f] text-white overflow-x-hidden">
       <Navbar />
       <TrialBanner />
 

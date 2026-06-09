@@ -202,7 +202,8 @@ function GannWheel({ price, levels, activeAngle }: { price: number; levels: Gann
   const size = 300;
   const center = size / 2;
   const radius = 130;
-  
+
+  // Responsive: use viewBox so the SVG scales down on small screens
   const points = levels.slice(0, 16).map((level, i) => {
     const angle = (i * 22.5 - 90) * (Math.PI / 180);
     const r = radius * (0.6 + (level.strength / 100) * 0.4);
@@ -214,8 +215,8 @@ function GannWheel({ price, levels, activeAngle }: { price: number; levels: Gann
   });
   
   return (
-    <div className="relative">
-      <svg width={size} height={size} className="overflow-visible">
+    <div className="relative w-full max-w-[300px] mx-auto aspect-square">
+      <svg viewBox={`0 0 ${size} ${size}`} className="w-full h-full overflow-visible">
         {/* Background circles */}
         {[0.3, 0.5, 0.7, 0.9, 1].map((r, i) => (
           <circle
@@ -322,81 +323,73 @@ export default function GannCalculator() {
   const priceChange = ((price - selectedSymbol.price) / selectedSymbol.price * 100);
   
   return (
-    <div className="min-h-screen bg-[#05070f] text-white selection:bg-violet-500/30 selection:text-violet-200">
+    <div className="min-h-screen bg-[#05070f] text-white selection:bg-violet-500/30 selection:text-violet-200 overflow-x-hidden">
       {/* Background */}
-      <div className="fixed inset-0">
+      <div className="fixed inset-0 pointer-events-none">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-violet-950/20 via-transparent to-transparent" />
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] bg-[size:48px_48px] opacity-[0.03]" />
       </div>
       
       <div className="relative z-10">
-        {/* Header */}
-        <header className="sticky top-0 z-40 border-b border-white/5 bg-[#05070f]/80 backdrop-blur-2xl">
+        {/* Sub-header with live badge and symbol quick-select */}
+        <div className="border-b border-white/5 bg-[#05070f]/80 backdrop-blur-xl">
           <div className="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8">
-            <div className="flex h-[68px] items-center justify-between">
-              <div className="flex items-center gap-5">
-                <div className="flex items-center gap-3">
-                  <div className="relative">
-                    <div className="absolute -inset-1 rounded-xl bg-violet-600/20 blur-xl" />
-                    <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-indigo-600 shadow-lg shadow-violet-950/50">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-white">
-                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex items-baseline gap-2">
-                      <h1 className="text-[22px] font-bold tracking-tight">GannPro 9</h1>
-                      <span className="rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-400 ring-1 ring-inset ring-emerald-500/20">LIVE</span>
-                    </div>
-                    <p className="text-[11px] text-slate-500 -mt-1">WD Gann Square of 9 • 90.4% Accuracy</p>
+            <div className="flex h-14 items-center justify-between">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="relative shrink-0">
+                  <div className="absolute -inset-1 rounded-xl bg-violet-600/20 blur-xl" />
+                  <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-indigo-600 shadow-lg shadow-violet-950/50">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="text-white">
+                      <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
                   </div>
                 </div>
-                
-                <div className="hidden lg:flex items-center gap-3 pl-5 border-l border-white/10">
-                  {SYMBOLS.slice(0, 4).map(s => (
-                    <button
-                      key={s.id}
-                      onClick={() => setSelectedSymbol(s)}
-                      className={`group relative overflow-hidden rounded-lg px-3 py-1.5 transition-all ${
-                        selectedSymbol.id === s.id 
-                          ? "bg-white/10" 
-                          : "hover:bg-white/5"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className={`text-xs font-medium ${selectedSymbol.id === s.id ? "text-white" : "text-slate-400 group-hover:text-slate-200"}`}>
-                          {s.id}
-                        </span>
-                        <span className={`text-[11px] ${s.id === "BTCUSD" || s.id === "NIFTY" ? "text-emerald-400" : "text-rose-400"}`}>
-                          {s.id === "BTCUSD" ? "+2.4%" : s.id === "NIFTY" ? "+0.8%" : "-0.3%"}
-                        </span>
-                      </div>
-                    </button>
-                  ))}
+                <div className="min-w-0">
+                  <div className="flex items-baseline gap-2">
+                    <h1 className="text-base sm:text-lg font-bold tracking-tight truncate">GannPro 9</h1>
+                    <span className="shrink-0 rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-400 ring-1 ring-inset ring-emerald-500/20">LIVE</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 -mt-0.5 truncate">WD Gann Square of 9 • 90.4% Accuracy</p>
                 </div>
               </div>
               
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 shrink-0">
                 <div className="hidden md:flex items-center gap-2 rounded-full bg-white/5 px-3 py-1.5 ring-1 ring-white/10">
                   <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
                   <span className="text-xs text-slate-300">Markets Open</span>
                 </div>
-                <button className="hidden sm:flex items-center gap-1.5 rounded-xl bg-violet-600 px-4 py-2 text-sm font-medium shadow-lg shadow-violet-950/30 transition-all hover:bg-violet-500 hover:shadow-violet-900/40">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <button className="hidden sm:flex items-center gap-1.5 rounded-xl bg-violet-600 px-3 py-1.5 text-sm font-medium shadow-lg shadow-violet-950/30 transition-all hover:bg-violet-500">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
                   </svg>
                   Export
                 </button>
               </div>
             </div>
+
+            {/* Symbol quick-select bar - horizontally scrollable on mobile */}
+            <div className="flex items-center gap-2 pb-2 overflow-x-auto no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
+              {SYMBOLS.map(s => (
+                <button
+                  key={s.id}
+                  onClick={() => setSelectedSymbol(s)}
+                  className={`shrink-0 rounded-lg px-2.5 py-1 transition-all text-xs font-medium ${
+                    selectedSymbol.id === s.id 
+                      ? "bg-white/10 text-white" 
+                      : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
+                  }`}
+                >
+                  {s.id}
+                </button>
+              ))}
+            </div>
           </div>
-        </header>
+        </div>
         
-        <main className="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
-          <div className="grid grid-cols-12 gap-5">
+        <main className="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-5">
             {/* Left Panel - Controls */}
-            <div className="col-span-12 xl:col-span-3 space-y-4">
+            <div className="xl:col-span-3 space-y-4">
               <div className="rounded-[20px] border border-white/10 bg-gradient-to-b from-white/[0.07] to-white/[0.02] p-5 shadow-2xl shadow-black/40 backdrop-blur-xl">
                 <h2 className="text-[13px] font-semibold uppercase tracking-wider text-slate-400 mb-4">Instrument</h2>
                 
@@ -513,7 +506,7 @@ export default function GannCalculator() {
             </div>
             
             {/* Center - Levels */}
-            <div className="col-span-12 xl:col-span-6 space-y-4">
+            <div className="xl:col-span-6 space-y-4">
               {/* Trade Idea Card - Hero */}
               <div className="relative overflow-hidden rounded-[24px] border border-white/10 bg-gradient-to-b from-white/[0.08] to-transparent shadow-2xl shadow-black/50">
                 <div className="absolute inset-0">
@@ -559,7 +552,7 @@ export default function GannCalculator() {
                   </div>
                   
                   {/* Entry / TP / SL */}
-                  <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-5">
+                  <div className="mt-6 sm:mt-8 grid grid-cols-2 gap-3 sm:grid-cols-5 sm:gap-4">
                     <div className="sm:col-span-2 rounded-2xl bg-[#0b1120]/70 p-4 ring-1 ring-white/10">
                       <div className="text-[11px] uppercase tracking-wider text-slate-500">Entry Zone</div>
                       <div className="mt-1 flex items-baseline gap-2">
@@ -597,7 +590,7 @@ export default function GannCalculator() {
                     </div>
                   </div>
                   
-                  <div className="mt-6 flex flex-wrap items-center gap-3">
+                  <div className="mt-4 sm:mt-6 flex flex-wrap items-center gap-2 sm:gap-3">
                     <div className="flex items-center gap-2 rounded-xl bg-white/5 px-3 py-2 ring-1 ring-white/10">
                       <span className="text-xs text-slate-400">R:R</span>
                       <span className="text-sm font-bold text-white">1:{tradeIdea.rr.toFixed(1)}</span>
@@ -606,11 +599,11 @@ export default function GannCalculator() {
                       <span className="text-xs text-slate-400">Win Rate</span>
                       <span className="text-sm font-bold text-emerald-400">{tradeIdea.confidence}%</span>
                     </div>
-                    <div className="flex-1" />
-                    <button className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-black transition-all hover:bg-zinc-200">
+                    <div className="hidden sm:block flex-1" />
+                    <button className="rounded-xl bg-white px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-black transition-all hover:bg-zinc-200">
                       Copy Trade Setup
                     </button>
-                    <button className={`rounded-xl px-4 py-2 text-sm font-semibold transition-all ${
+                    <button className={`rounded-xl px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold transition-all ${
                       tradeIdea.direction === "LONG"
                         ? "bg-emerald-600 hover:bg-emerald-500 shadow-lg shadow-emerald-950/30"
                         : "bg-rose-600 hover:bg-rose-500 shadow-lg shadow-rose-950/30"
@@ -688,7 +681,7 @@ export default function GannCalculator() {
             </div>
             
             {/* Right Panel - Analysis */}
-            <div className="col-span-12 xl:col-span-3 space-y-4">
+            <div className="xl:col-span-3 space-y-4">
               {/* 90% Accuracy Card */}
               <div className="relative overflow-hidden rounded-[20px] border border-amber-500/20 bg-gradient-to-b from-amber-950/30 to-orange-950/20 p-5 shadow-xl shadow-amber-950/20">
                 <div className="absolute -top-10 -right-10 h-32 w-32 rounded-full bg-amber-500/20 blur-3xl" />

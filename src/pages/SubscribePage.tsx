@@ -179,7 +179,7 @@ export function SubscribePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#05070f] text-white">
+    <div className="min-h-screen bg-[#05070f] text-white overflow-x-hidden">
       <Navbar />
       <TrialBanner />
       <main className="mx-auto max-w-3xl px-4 py-8">
@@ -260,8 +260,8 @@ export function SubscribePage() {
 
         {/* Step 2: Payment Method Selection */}
         {step === "payment" && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-            <div className="w-full max-w-xl rounded-2xl border border-violet-500/20 bg-gradient-to-br from-[#0b1120] to-[#161a30] p-6 sm:p-8">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-3 sm:p-4 backdrop-blur-sm overflow-y-auto">
+            <div className="w-full max-w-xl rounded-2xl border border-violet-500/20 bg-gradient-to-br from-[#0b1120] to-[#161a30] p-5 sm:p-8 my-auto">
               <h2 className="text-2xl font-bold text-center mb-2 text-white">Complete Payment</h2>
               <p className="text-center text-slate-400 mb-2">
                 Plan: <span className="text-violet-300 font-semibold">{plans.find(p => p.id === selectedPlan)?.name}</span>
@@ -443,8 +443,8 @@ export function SubscribePage() {
               {showQr && selectedApp !== "card" && selectedApp !== "jazzcash" && (
                 <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 text-center">
                   <p className="text-sm text-slate-400 mb-4">App not opening? Scan QR code instead</p>
-                  <div className="inline-block rounded-2xl bg-white p-4">
-                    <QRCodeSVG value={qrValue} size={256} />
+                  <div className="inline-block rounded-2xl bg-white p-3 sm:p-4">
+                    <QRCodeSVG value={qrValue} size={200} className="sm:w-[256px] sm:h-[256px]" />
                   </div>
                   <p className="text-xs text-slate-500 mt-3">QR regenerates based on selected plan ({amount.toLocaleString()} PKR)</p>
                 </div>
