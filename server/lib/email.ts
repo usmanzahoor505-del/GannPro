@@ -45,10 +45,15 @@ export async function sendOtpEmail(email: string, otp: string): Promise<void> {
     return;
   }
 
-  await transporter.sendMail({
-    from: `"${config.smtp.fromName}" <${config.smtp.fromEmail}>`,
-    to: email,
-    subject: "Your GannPro9 Verification Code",
-    html,
-  });
+  try {
+    await transporter.sendMail({
+      from: `"${config.smtp.fromName}" <${config.smtp.fromEmail}>`,
+      to: email,
+      subject: "Your GannPro9 Verification Code",
+      html,
+    });
+  } catch (error) {
+    console.error("OTP email send failed:", error);
+    console.log(`[DEV] OTP for ${email}: ${otp}`);
+  }
 }
