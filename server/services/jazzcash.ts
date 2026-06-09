@@ -159,7 +159,16 @@ export async function initiateDirectWalletPayment(
       body: JSON.stringify(payload),
     });
 
-    const data = await response.json() as any;
+    const rawText = await response.text();
+    let data: any = {};
+
+    try {
+      data = rawText ? JSON.parse(rawText) : {};
+    } catch (parseErr) {
+      console.error("JazzCash Wallet Direct API returned non-JSON response:", rawText.slice(0, 500));
+      data = { pp_ResponseCode: "500", pp_ResponseMessage: "Invalid response from JazzCash gateway" };
+    }
+
     console.log("JazzCash Wallet Direct API response:", data);
 
     const responseCode = data.pp_ResponseCode || data.ResponseCode;
@@ -247,7 +256,16 @@ export async function initiateDirectCardPayment(
       body: JSON.stringify(payload),
     });
 
-    const data = await response.json() as any;
+    const rawText = await response.text();
+    let data: any = {};
+
+    try {
+      data = rawText ? JSON.parse(rawText) : {};
+    } catch (parseErr) {
+      console.error("JazzCash Card Direct API returned non-JSON response:", rawText.slice(0, 500));
+      data = { pp_ResponseCode: "500", pp_ResponseMessage: "Invalid response from JazzCash gateway" };
+    }
+
     console.log("JazzCash Card Direct API response:", data);
 
     const responseCode = data.pp_ResponseCode || data.ResponseCode;
