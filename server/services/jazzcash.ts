@@ -109,7 +109,7 @@ export async function initiateDirectWalletPayment(
   plan: PlanId,
   userId: string,
   mobileNumber: string
-): Promise<{ success: boolean; responseCode: string; responseMessage: string; txnRefNo: string }> {
+): Promise<{ success: boolean; responseCode: string; responseMessage: string; txnRefNo: string; responseStatus?: number; rawResponse?: string }> {
   const { merchantId, password, integritySalt, apiUrl } = config.jazzcash;
 
   // If credentials are mock or missing, simulate a successful transaction in development/sandbox
@@ -160,13 +160,18 @@ export async function initiateDirectWalletPayment(
     });
 
     const rawText = await response.text();
+    console.error("JazzCash Wallet raw response status:", response.status, response.statusText);
+    console.error("JazzCash Wallet raw response body:", rawText.slice(0, 2000));
     let data: any = {};
 
     try {
       data = rawText ? JSON.parse(rawText) : {};
     } catch (parseErr) {
       console.error("JazzCash Wallet Direct API returned non-JSON response:", rawText.slice(0, 500));
-      data = { pp_ResponseCode: "500", pp_ResponseMessage: "Invalid response from JazzCash gateway" };
+      data = {
+        pp_ResponseCode: String(response.status || 500),
+        pp_ResponseMessage: `JazzCash returned a non-JSON response (HTTP ${response.status || 500}).`,
+      };
     }
 
     console.log("JazzCash Wallet Direct API response:", data);
@@ -179,6 +184,8 @@ export async function initiateDirectWalletPayment(
       responseCode,
       responseMessage,
       txnRefNo,
+      responseStatus: response.status,
+      rawResponse: rawText.slice(0, 1000),
     };
   } catch (err: any) {
     console.error("JazzCash Wallet Direct API error:", err);
@@ -200,7 +207,7 @@ export async function initiateDirectCardPayment(
     cardCvv: string;
     cardHolder: string;
   }
-): Promise<{ success: boolean; responseCode: string; responseMessage: string; txnRefNo: string }> {
+): Promise<{ success: boolean; responseCode: string; responseMessage: string; txnRefNo: string; responseStatus?: number; rawResponse?: string }> {
   const { merchantId, password, integritySalt, cardApiUrl } = config.jazzcash;
 
   // Clean card number & expiry
@@ -257,13 +264,18 @@ export async function initiateDirectCardPayment(
     });
 
     const rawText = await response.text();
+    console.error("JazzCash Card raw response status:", response.status, response.statusText);
+    console.error("JazzCash Card raw response body:", rawText.slice(0, 2000));
     let data: any = {};
 
     try {
       data = rawText ? JSON.parse(rawText) : {};
     } catch (parseErr) {
       console.error("JazzCash Card Direct API returned non-JSON response:", rawText.slice(0, 500));
-      data = { pp_ResponseCode: "500", pp_ResponseMessage: "Invalid response from JazzCash gateway" };
+      data = {
+        pp_ResponseCode: String(response.status || 500),
+        pp_ResponseMessage: `JazzCash returned a non-JSON response (HTTP ${response.status || 500}).`,
+      };
     }
 
     console.log("JazzCash Card Direct API response:", data);
@@ -276,6 +288,8 @@ export async function initiateDirectCardPayment(
       responseCode,
       responseMessage,
       txnRefNo,
+      responseStatus: response.status,
+      rawResponse: rawText.slice(0, 1000),
     };
   } catch (err: any) {
     console.error("JazzCash Card Direct API error:", err);

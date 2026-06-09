@@ -193,6 +193,8 @@ router.post("/jazzcash/direct-wallet", authenticate, requireNoActiveSubscription
         success: false,
         error: result.responseMessage || "Failed to authorize wallet payment",
         code: result.responseCode,
+        status: result.responseStatus,
+        rawResponse: result.rawResponse,
       });
     }
   } catch (err: any) {
@@ -232,6 +234,8 @@ router.post("/jazzcash/direct-card", authenticate, requireNoActiveSubscription, 
         success: false,
         error: result.responseMessage || "Card transaction failed",
         code: result.responseCode,
+        status: result.responseStatus,
+        rawResponse: result.rawResponse,
       });
     }
   } catch (err: any) {
