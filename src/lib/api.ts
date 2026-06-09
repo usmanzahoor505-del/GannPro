@@ -10,11 +10,21 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     },
   });
 
-  const data = await res.json().catch(() => ({}));
+  const rawText = await res.text();
+  let data: any = {};
+
+  if (rawText) {
+    try {
+      data = JSON.parse(rawText);
+    } catch {
+      data = { error: rawText.slice(0, 500) || `Request failed (${res.status})` };
+    }
+  }
 
   if (!res.ok) {
-    throw new Error(data.error || `Request failed (${res.status})`);
+    throw new Error(data.error || data.message || `Request failed (${res.status})`);
   }
+
   return data as T;
 }
 
