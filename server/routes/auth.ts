@@ -83,8 +83,10 @@ router.post("/register", async (req, res) => {
 
     res.json({ message: "OTP sent to your email", email: email.toLowerCase() });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Registration failed" });
+    console.error("REGISTER_ERROR", err);
+    res.status(500).json({
+      error: err instanceof Error ? err.message : "Registration failed",
+    });
   }
 });
 
@@ -140,8 +142,10 @@ router.post("/verify-otp", async (req, res) => {
       user: { id: user.id, name: user.name, email: user.email, role: user.role },
     });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Verification failed" });
+    console.error("VERIFY_OTP_ERROR", err);
+    res.status(500).json({
+      error: err instanceof Error ? err.message : "Verification failed",
+    });
   }
 });
 
@@ -186,8 +190,10 @@ router.post("/resend-otp", async (req, res) => {
     await sendOtpEmail(email, otp);
     res.json({ message: "OTP resent", cooldown: config.otpResendCooldown });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Resend failed" });
+    console.error("RESEND_OTP_ERROR", err);
+    res.status(500).json({
+      error: err instanceof Error ? err.message : "Resend failed",
+    });
   }
 });
 
