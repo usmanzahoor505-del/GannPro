@@ -55,6 +55,25 @@ export function SubscribePage() {
     setStep("payment");
   };
 
+  const getPaymentErrorMessage = (err: unknown) => {
+    const raw = err instanceof Error ? err.message : typeof err === "string" ? err : "";
+    const text = raw.toLowerCase();
+
+    if (text.includes("insufficient balance") || text.includes("insufficient funds")) {
+      return "Insufficient balance on the card. Please use another card or add funds and try again.";
+    }
+
+    if (text.includes("invalid card") || text.includes("expired") || text.includes("cvv")) {
+      return "Card details are invalid or expired. Please check the number, expiry date, and CVV.";
+    }
+
+    if (text.includes("404") || text.includes("no http resource was found")) {
+      return "JazzCash gateway is currently unavailable. Please try again shortly.";
+    }
+
+    return raw || "Payment failed. Please try again.";
+  };
+
   const handleManualPayment = async (appId: string) => {
     if (appId === "card") {
       setSelectedApp("card");
@@ -116,7 +135,7 @@ export function SubscribePage() {
 
         toast("Redirecting to JazzCash checkout…", "info");
       } catch (err: any) {
-        toast(err.message || "JazzCash checkout failed. Please try again.", "error");
+        toast(getPaymentErrorMessage(err), "error");
       } finally {
         setSubmitting(false);
       }

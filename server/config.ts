@@ -56,9 +56,9 @@ export const config = {
     merchantId: process.env.JAZZCASH_MERCHANT_ID || "",
     password: process.env.JAZZCASH_PASSWORD || "",
     integritySalt: process.env.JAZZCASH_INTEGRITY_SALT || "",
-    checkoutUrl: process.env.JAZZCASH_URL || "https://sandbox.jazzcash.com.pk/CustomerPortal/transactionPage",
-    apiUrl: process.env.JAZZCASH_API_URL || "https://sandbox.jazzcash.com.pk/ApplicationAPI/API/2.0/Purchase/DoMWalletTransaction",
-    cardApiUrl: process.env.JAZZCASH_CARD_API_URL || "https://sandbox.jazzcash.com.pk/ApplicationAPI/API/1.1/Purchase/DoCardTransaction",
+    checkoutUrl: process.env.JAZZCASH_URL || "https://payments.jazzcash.com.pk/CustomerPortal/transactionPage",
+    apiUrl: process.env.JAZZCASH_API_URL || "https://payments.jazzcash.com.pk/ApplicationAPI/API/2.0/Purchase/DoMWalletTransaction",
+    cardApiUrl: process.env.JAZZCASH_CARD_API_URL || "https://payments.jazzcash.com.pk/ApplicationAPI/API/2.0/Purchase/DoCardTransaction",
   },
 };
 
