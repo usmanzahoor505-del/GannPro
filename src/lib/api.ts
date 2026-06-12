@@ -92,6 +92,12 @@ export const api = {
       body: JSON.stringify({ plan }),
     }),
 
+  submitContactForm: (body: { name: string; email: string; phone?: string; subject: string; message: string }) =>
+    request<{ success: boolean; message: string }>("/contact", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+
   payWithDirectWallet: (plan: string, mobileNumber: string) =>
     request<{ success: boolean; message: string; payment: any }>("/payments/jazzcash/direct-wallet", {
       method: "POST",

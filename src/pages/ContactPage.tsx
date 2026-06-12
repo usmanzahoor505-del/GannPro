@@ -3,6 +3,7 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Button } from "@/components/ui/Button";
 import { Input, Label } from "@/components/ui/Input";
 import { useToast } from "@/context/ToastContext";
+import { api } from "@/lib/api";
 
 export function ContactPage() {
   const { toast } = useToast();
@@ -13,33 +14,22 @@ export function ContactPage() {
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
-
-    const subjectText = 
-      subject === "subscription" ? "Subscription & Billing" :
-      subject === "technical" ? "Technical Support" :
-      subject === "accuracy" ? "Signal Accuracy Inquiry" :
-      subject === "partnership" ? "Partnership" :
-      subject === "privacy" ? "Privacy / Data Request" : "Support Inquiry";
-
-    const emailSubject = `[GannPro9 Contact] ${subjectText}`;
-    const emailBody = `Full Name: ${name}
-Email Address: ${email}
-Phone Number: ${phone || "Not provided"}
-
-Message:
-${message}`;
-
-    // Gmail Web Composer URL
-    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=arbaz90salman@gmail.com&su=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
-
-    // Open Gmail in a new tab
-    window.open(gmailUrl, "_blank");
-
-    toast("Opening Gmail compose window...", "success");
-    setSubmitting(false);
+    try {
+      await api.submitContactForm({ name, email, phone, subject, message });
+      toast("Message sent successfully! We will respond within 24-48 business hours.", "success");
+      setName("");
+      setEmail("");
+      setPhone("");
+      setSubject("");
+      setMessage("");
+    } catch (err: any) {
+      toast(err.message || "Failed to send message. Please try again later.", "error");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
