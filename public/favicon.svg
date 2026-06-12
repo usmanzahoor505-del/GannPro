@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <!-- Rounded square violet/indigo background -->
+  <rect width="100" height="100" rx="28" fill="url(#logoGrad)" />
+  
+  <!-- White isometric diamond path -->
+  <path d="M50 25 L18 43 L50 61 L82 43 Z" stroke="#FFFFFF" stroke-width="7" stroke-linejoin="round" stroke-linecap="round" />
+  
+  <defs>
+    <linearGradient id="logoGrad" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8B5CF6" /> <!-- violet-500 -->
+      <stop offset="1" stop-color="#4F46E5" /> <!-- indigo-600 -->
+    </linearGradient>
+  </defs>
+</svg>

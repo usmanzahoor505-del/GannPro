@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider, useAuth } from "@/context/AuthContext";
+import { AuthProvider } from "@/context/AuthContext";
 import { ToastProvider } from "@/context/ToastContext";
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
 import { LandingPage } from "@/pages/LandingPage";
@@ -10,17 +10,11 @@ import { UserDashboardPage } from "@/pages/UserDashboardPage";
 import { CalculatorPage } from "@/pages/CalculatorPage";
 import { SubscribePage } from "@/pages/SubscribePage";
 import { ReceiptPage } from "@/pages/ReceiptPage";
+import { ContactPage } from "@/pages/ContactPage";
+import { PrivacyPage } from "@/pages/PrivacyPage";
 import { AdminDashboardPage } from "@/pages/admin/AdminDashboardPage";
 import { AdminUsersPage } from "@/pages/admin/AdminUsersPage";
 import { AdminPaymentsPage } from "@/pages/admin/AdminPaymentsPage";
-
-function HomeRedirect() {
-  const { user, loading } = useAuth();
-  if (loading) return null;
-  if (!user) return <LandingPage />;
-  if (user.role === "admin") return <Navigate to="/admin" replace />;
-  return <Navigate to="/dashboard" replace />;
-}
 
 export default function App() {
   return (
@@ -28,10 +22,12 @@ export default function App() {
       <AuthProvider>
         <ToastProvider>
           <Routes>
-            <Route path="/" element={<HomeRedirect />} />
+            <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/admin/login" element={<AdminLoginPage />} />
+            <Route path="/contact" element={<ContactPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
 
             <Route path="/dashboard" element={<ProtectedRoute><UserDashboardPage /></ProtectedRoute>} />
             <Route path="/calculator" element={<ProtectedRoute><CalculatorPage /></ProtectedRoute>} />

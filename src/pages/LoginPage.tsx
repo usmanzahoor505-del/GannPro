@@ -4,6 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import { Button } from "@/components/ui/Button";
 import { Input, Label } from "@/components/ui/Input";
+import { Navbar } from "@/components/layout/Navbar";
 
 export function LoginPage() {
   const [email, setEmail] = useState("");
@@ -52,19 +53,22 @@ export function LoginPage() {
 
 export function AuthLayout({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-[#05070f] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-violet-950/20 via-transparent to-transparent" />
-      <div className="relative w-full max-w-md rounded-[24px] border border-white/10 bg-gradient-to-b from-white/[0.07] to-white/[0.02] p-8 shadow-2xl">
-        <div className="text-center mb-8">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-indigo-600">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="text-white">
-              <path d="M12 2L2 7l10 5 10-5-10-5z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-            </svg>
+    <div className="min-h-screen bg-[#05070f] text-white flex flex-col">
+      <Navbar />
+      <div className="flex-1 flex items-center justify-center p-4 relative">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-violet-950/20 via-transparent to-transparent -z-10" />
+        <div className="relative w-full max-w-md rounded-[24px] border border-white/10 bg-gradient-to-b from-white/[0.07] to-white/[0.02] p-8 shadow-2xl">
+          <div className="text-center mb-8">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-indigo-600">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="text-white">
+                <path d="M12 2L2 7l10 5 10-5-10-5z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+              </svg>
+            </div>
+            <h1 className="text-2xl font-bold">{title}</h1>
+            <p className="text-sm text-slate-500 mt-1">{subtitle}</p>
           </div>
-          <h1 className="text-2xl font-bold">{title}</h1>
-          <p className="text-sm text-slate-500 mt-1">{subtitle}</p>
+          {children}
         </div>
-        {children}
       </div>
     </div>
   );

@@ -1,11 +1,14 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/Button";
+import { Navbar } from "@/components/layout/Navbar";
 
 export function LandingPage() {
   return (
-    <div className="min-h-screen bg-[#05070f] text-white">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-violet-950/30 via-transparent to-transparent" />
-      <div className="relative mx-auto max-w-4xl px-4 py-20 text-center">
+    <div className="min-h-screen bg-[#05070f] text-white flex flex-col">
+      <Navbar />
+      <div className="relative flex-1 py-20 flex flex-col justify-center">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-violet-950/30 via-transparent to-transparent" />
+        <div className="relative mx-auto max-w-4xl px-4 text-center">
         <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-600 shadow-2xl shadow-violet-950/50">
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" className="text-white">
             <path d="M12 2L2 7l10 5 10-5-10-5z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
@@ -13,7 +16,10 @@ export function LandingPage() {
         </div>
         <h1 className="text-5xl font-black tracking-tight">GannPro9</h1>
         <p className="mt-4 text-xl text-slate-400">WD Gann Square of 9 Trading Calculator</p>
-        <p className="mt-2 text-amber-400 font-semibold">90.4% Historical Accuracy</p>
+        <div className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/5 px-3.5 py-1.5 text-xs sm:text-sm font-semibold text-amber-400 shadow-sm shadow-amber-950/20">
+          <span className="flex h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
+          Predict Turning Points with Mathematical Precision
+        </div>
 
         <div className="mt-10 flex flex-wrap justify-center gap-4">
           <Link to="/register"><Button className="px-8 py-3 text-base">Start Free 3-Day Trial</Button></Link>
@@ -70,6 +76,7 @@ export function LandingPage() {
             </div>
           ))}
         </div>
+      </div>
       </div>
     </div>
   );
