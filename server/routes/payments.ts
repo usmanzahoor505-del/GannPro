@@ -116,6 +116,11 @@ router.post("/jazzcash/initiate", authenticate, requireNoActiveSubscription, asy
     const host = req.get("host") || "localhost:3001";
     const paymentDetails = initiateJazzCashPayment(plan as PlanId, req.user!.userId, host);
 
+    // Diagnostic: log the exact payload + hash we send to JazzCash so we can
+    // verify the request when the hosted page rejects it (LoggedOut error).
+    console.log("[jazzcash/initiate] POST URL:", paymentDetails.url);
+    console.log("[jazzcash/initiate] payload:", JSON.stringify(paymentDetails.payload, null, 2));
+
     res.json(paymentDetails);
   } catch (err: any) {
     console.error("JazzCash initiation error:", err);
