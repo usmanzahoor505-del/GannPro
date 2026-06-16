@@ -18,13 +18,21 @@ export function generateSecureHash(payload: Record<string, string>): string {
     throw new Error("Missing JAZZCASH_INTEGRITY_SALT in configuration");
   }
 
-  // 1. Get all keys starting with pp_ and having non-empty values
+  // 1. Get all keys starting with pp_ (and ppmpf_) with non-empty values,
+  //    excluding the SecureHash field itself, sorted alphabetically.
   const sortedKeys = Object.keys(payload)
-    .filter((key) => key.startsWith("pp_") && payload[key] !== undefined && payload[key] !== "")
+    .filter(
+      (key) =>
+        (key.startsWith("pp_") || key.startsWith("ppmpf_")) &&
+        key !== "pp_SecureHash" &&
+        payload[key] !== undefined &&
+        payload[key] !== ""
+    )
     .sort();
 
-  // 2. Concatenate sorted key=value strings using & separator
-  const dataString = sortedKeys.map((key) => `${key}=${payload[key]}`).join("&");
+  // 2. Concatenate ONLY the values (not key=value) using & separator.
+  //    JazzCash spec requires values-only, not key=value pairs.
+  const dataString = sortedKeys.map((key) => payload[key]).join("&");
 
   // 3. Prepend Integrity Salt
   const stringToHash = `${salt}&${dataString}`;
