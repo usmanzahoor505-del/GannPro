@@ -71,6 +71,13 @@ export function initiateJazzCashPayment(
   const protocol = host.includes("localhost") || host.includes("127.0.0.1") ? "http" : "https";
   const returnUrl = `${protocol}://${host}/api/payments/jazzcash/callback`;
 
+  // JazzCash pp_BillReference must be short & alphanumeric (max ~20 chars).
+  // We carry userId + plan via the merchant custom fields ppmpf_1/ppmpf_2
+  // instead (JazzCash echoes these back in the callback). userId is a UUID
+  // with hyphens, so we send it hyphen-stripped (32 hex chars, alphanumeric)
+  // and reconstruct it on the callback.
+  const userIdCompact = userId.replace(/-/g, "");
+
   const payload: Record<string, string> = {
     pp_Version: "1.1",
     pp_TxnType: "", // Empty string means Hosted Checkout (Card + Wallet)
@@ -81,10 +88,12 @@ export function initiateJazzCashPayment(
     pp_Amount: String(amountPaisa),
     pp_TxnCurrency: "PKR",
     pp_TxnDateTime: getFormattedDateTime(now),
-    pp_BillReference: `${userId}#${plan}`, // Combine userId and plan so we can parse on callback
+    pp_BillReference: "GannPro9Sub", // short alphanumeric reference
     pp_Description: `GannPro9 ${PLANS[plan].name} Plan Subscription`,
     pp_TxnExpiryDateTime: getFormattedDateTime(expiry),
     pp_ReturnURL: returnUrl,
+    ppmpf_1: userIdCompact, // userId (hyphens stripped)
+    ppmpf_2: plan, // plan id
     pp_SecureHash: "", // Will be filled below
   };
 

@@ -144,9 +144,21 @@ router.post("/jazzcash/callback", async (req, res) => {
       pp_ResponseMessage,
       pp_BillReference,
       pp_TxnRefNo,
+      ppmpf_1,
+      ppmpf_2,
     } = req.body;
 
-    const [userId, plan] = (pp_BillReference || "").split("#");
+    // userId + plan now travel via ppmpf_1/ppmpf_2. userId was sent with
+    // hyphens stripped (32 hex chars) — reconstruct the UUID here.
+    let userId = (ppmpf_1 || "").trim();
+    let plan = (ppmpf_2 || "").trim();
+    if (/^[0-9a-fA-F]{32}$/.test(userId)) {
+      userId = `${userId.slice(0, 8)}-${userId.slice(8, 12)}-${userId.slice(12, 16)}-${userId.slice(16, 20)}-${userId.slice(20)}`;
+    }
+    // Backward-compat: fall back to the old "userId#plan" BillReference format.
+    if (!userId || !plan) {
+      [userId, plan] = (pp_BillReference || "").split("#");
+    }
 
     if (!userId || !plan) {
       console.error("Invalid bill reference in JazzCash callback:", pp_BillReference);
