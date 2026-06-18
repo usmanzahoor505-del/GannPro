@@ -1,6 +1,11 @@
 const API = "/api";
 
-async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+// Endpoints that must NOT trigger an auto-refresh-and-retry on 401:
+// the refresh call itself, and the credential checks (a 401 there is a
+// genuine "wrong credentials", not an expired session).
+const NO_REFRESH = ["/auth/refresh", "/auth/login", "/auth/admin/login"];
+
+async function request<T>(path: string, options: RequestInit = {}, retry = true): Promise<T> {
   const res = await fetch(`${API}${path}`, {
     ...options,
     credentials: "include",
@@ -9,6 +14,18 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
       ...options.headers,
     },
   });
+
+  // Access token expired? Try refreshing once with the long-lived refresh
+  // token, then replay the original request.
+  if (res.status === 401 && retry && !NO_REFRESH.includes(path)) {
+    const refreshed = await fetch(`${API}/auth/refresh`, {
+      method: "POST",
+      credentials: "include",
+    });
+    if (refreshed.ok) {
+      return request<T>(path, options, false);
+    }
+  }
 
   const rawText = await res.text();
   let data: any = {};
