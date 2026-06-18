@@ -47,6 +47,13 @@ export const config = {
     fromEmail: process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER || "",
   },
 
+  // Admin inbox that receives new-payment-request notifications.
+  adminEmail:
+    process.env.ADMIN_EMAIL ||
+    process.env.SMTP_FROM_EMAIL ||
+    process.env.SMTP_USER ||
+    "",
+
   trialDays: parseInt(process.env.TRIAL_DAYS || "3", 10),
   otpExpiryMinutes: parseInt(process.env.OTP_EXPIRY_MINUTES || "10", 10),
   otpResendCooldown: parseInt(process.env.OTP_RESEND_COOLDOWN_SECONDS || "60", 10),

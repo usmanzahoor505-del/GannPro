@@ -9,7 +9,7 @@ import {
 } from "../services/payments.js";
 import { getUserSubscription, getSubscriptionInfo } from "../services/subscription.js";
 import { config, PLANS, PlanId } from "../config.js";
-import { sendPaymentSubmittedEmail } from "../lib/email.js";
+import { sendPaymentSubmittedEmail, sendPaymentRequestAdminEmail } from "../lib/email.js";
 import { supabase } from "../db.js";
 
 const upload = multer({
@@ -105,6 +105,17 @@ router.post(
           const planPkr = PLANS[plan as PlanId]?.pkr || 0;
           sendPaymentSubmittedEmail(userData.email, userData.name, planName, planPkr).catch((err) => {
             console.error("Failed sending payment confirmation email:", err);
+          });
+          // Notify admin inbox of the new payment request.
+          sendPaymentRequestAdminEmail({
+            userName: userData.name,
+            userEmail: userData.email,
+            planName,
+            amountPkr: planPkr,
+            transactionId: enrichedTxnId,
+            paymentMethod,
+          }).catch((err) => {
+            console.error("Failed sending admin payment request email:", err);
           });
         }
       } catch (emailErr) {

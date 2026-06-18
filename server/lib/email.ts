@@ -237,3 +237,72 @@ export async function sendPaymentSubmittedEmail(
   }
 }
 
+// Notifies the admin inbox that a new payment request is awaiting review.
+export async function sendPaymentRequestAdminEmail(params: {
+  userName: string;
+  userEmail: string;
+  planName: string;
+  amountPkr: number;
+  transactionId: string;
+  paymentMethod: string;
+}): Promise<void> {
+  const { userName, userEmail, planName, amountPkr, transactionId, paymentMethod } = params;
+  const adminEmail = config.adminEmail;
+
+  if (!config.smtp.user || !adminEmail) {
+    console.log(
+      `[DEV ADMIN PAYMENT ALERT] New payment request from ${userName} <${userEmail}> — ${planName}, ${amountPkr} PKR, txn: ${transactionId}, method: ${paymentMethod}`
+    );
+    return;
+  }
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#05070f;font-family:Arial,sans-serif;color:#cbd5e1;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#05070f;padding:40px 20px;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="background:#0b1120;border-radius:16px;border:1px solid rgba(255,255,255,0.1);overflow:hidden;text-align:left;">
+        <tr><td style="background:linear-gradient(135deg,#7c3aed,#4f46e5);padding:28px;text-align:center;">
+          <h1 style="margin:0;color:#fff;font-size:24px;font-weight:bold;">New Payment Request</h1>
+          <p style="margin:6px 0 0;color:rgba(255,255,255,0.8);font-size:12px;">A user has submitted a payment for verification</p>
+        </td></tr>
+        <tr><td style="padding:32px;color:#cbd5e1;font-size:14px;line-height:1.6;">
+          <h2 style="color:#fff;font-size:18px;margin-top:0;border-bottom:1px solid rgba(255,255,255,0.05);padding-bottom:8px;">Payment Details</h2>
+          <table width="100%" cellpadding="6" cellspacing="0">
+            <tr><td width="150" style="color:#64748b;font-weight:bold;">User Name:</td><td style="color:#f8fafc;">${userName}</td></tr>
+            <tr><td style="color:#64748b;font-weight:bold;">User Email:</td><td style="color:#f8fafc;"><a href="mailto:${userEmail}" style="color:#a78bfa;text-decoration:none;">${userEmail}</a></td></tr>
+            <tr><td style="color:#64748b;font-weight:bold;">Plan:</td><td style="color:#f8fafc;font-weight:bold;">${planName}</td></tr>
+            <tr><td style="color:#64748b;font-weight:bold;">Amount:</td><td style="color:#f8fafc;font-weight:bold;">${amountPkr.toLocaleString()} PKR</td></tr>
+            <tr><td style="color:#64748b;font-weight:bold;">Payment Method:</td><td style="color:#f8fafc;">${paymentMethod}</td></tr>
+            <tr><td style="color:#64748b;font-weight:bold;">Transaction ID:</td><td style="color:#f8fafc;">${transactionId || "—"}</td></tr>
+          </table>
+          <div style="margin:24px 0 0;padding:16px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);border-radius:12px;">
+            <p style="margin:0;font-size:13px;color:#fbbf24;">
+              ⏳ Please review and approve/reject this payment from the admin panel.
+            </p>
+          </div>
+        </td></tr>
+        <tr><td style="padding:16px 32px 28px;text-align:center;border-top:1px solid rgba(255,255,255,0.05);">
+          <p style="margin:0;color:#475569;font-size:11px;">© ${new Date().getFullYear()} GannPro9. All rights reserved.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+
+  try {
+    await transporter.sendMail({
+      from: `"${config.smtp.fromName}" <${config.smtp.fromEmail}>`,
+      to: adminEmail,
+      replyTo: userEmail,
+      subject: `[GannPro9] New Payment Request — ${userName} (${planName})`,
+      html,
+    });
+  } catch (error) {
+    console.error("Failed to send admin payment request email:", error);
+  }
+}
+
