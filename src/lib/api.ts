@@ -86,36 +86,10 @@ export const api = {
       body: formData,
     }),
 
-  initiateJazzCashPayment: (plan: string) =>
-    request<{ url: string; payload: Record<string, string> }>("/payments/jazzcash/initiate", {
-      method: "POST",
-      body: JSON.stringify({ plan }),
-    }),
-
   submitContactForm: (body: { name: string; email: string; phone?: string; subject: string; message: string }) =>
     request<{ success: boolean; message: string }>("/contact", {
       method: "POST",
       body: JSON.stringify(body),
-    }),
-
-  payWithDirectWallet: (plan: string, mobileNumber: string) =>
-    request<{ success: boolean; message: string; payment: any }>("/payments/jazzcash/direct-wallet", {
-      method: "POST",
-      body: JSON.stringify({ plan, mobileNumber }),
-    }),
-
-  payWithDirectCard: (
-    plan: string,
-    cardDetails: {
-      cardNumber: string;
-      cardExpiry: string;
-      cardCvv: string;
-      cardHolder: string;
-    }
-  ) =>
-    request<{ success: boolean; message: string; payment: any }>("/payments/jazzcash/direct-card", {
-      method: "POST",
-      body: JSON.stringify({ plan, ...cardDetails }),
     }),
 
   getReceipt: (receiptNo: string) =>

@@ -1,5 +1,6 @@
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
+import { AdminLoginPage } from "@/pages/AdminLoginPage";
 
 export function ProtectedRoute({ children, adminOnly = false }: { children: React.ReactNode; adminOnly?: boolean }) {
   const { user, loading } = useAuth();
@@ -12,9 +13,16 @@ export function ProtectedRoute({ children, adminOnly = false }: { children: Reac
     );
   }
 
-  if (!user) return <Navigate to={adminOnly ? "/admin/login" : "/login"} replace />;
-  if (adminOnly && user.role !== "admin") return <Navigate to="/dashboard" replace />;
-  if (!adminOnly && user.role === "admin") return <Navigate to="/admin" replace />;
+  if (adminOnly) {
+    if (!user || user.role !== "admin") {
+      return <AdminLoginPage />;
+    }
+    return <>{children}</>;
+  }
+
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role === "admin") return <Navigate to="/admin" replace />;
 
   return <>{children}</>;
 }
+

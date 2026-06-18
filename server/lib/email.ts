@@ -172,3 +172,68 @@ export async function sendContactEmail(
     throw adminError || new Error("Failed to send message to admin/support.");
   }
 }
+
+export async function sendPaymentSubmittedEmail(
+  email: string,
+  name: string,
+  planName: string,
+  amountPkr: number
+): Promise<void> {
+  const html = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#05070f;font-family:Arial,sans-serif;color:#cbd5e1;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#05070f;padding:40px 20px;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="background:#0b1120;border-radius:16px;border:1px solid rgba(255,255,255,0.1);overflow:hidden;text-align:left;">
+        <tr><td style="background:linear-gradient(135deg,#7c3aed,#4f46e5);padding:28px;text-align:center;">
+          <h1 style="margin:0;color:#fff;font-size:24px;font-weight:bold;">GannPro9</h1>
+          <p style="margin:6px 0 0;color:rgba(255,255,255,0.8);font-size:12px;">WD Gann Trading Calculator</p>
+        </td></tr>
+        <tr><td style="padding:32px;color:#cbd5e1;font-size:14px;line-height:1.6;">
+          <p style="color:#fff;font-size:16px;font-weight:bold;margin-top:0;">Hello ${name || "Subscriber"},</p>
+          <p>
+            Thank you for your payment submission for the <strong>${planName}</strong> plan. We have received your payment details and screenshot.
+          </p>
+          <p>
+            Your payment of <strong>${amountPkr.toLocaleString()} PKR</strong> is currently under verification. Our administrative team will review the transaction details against our records and approve your subscription shortly.
+          </p>
+          <div style="margin:20px 0;padding:16px;background:#05070f;border:1px solid rgba(255,255,255,0.05);border-radius:12px;">
+            <p style="margin:0;font-size:13px;color:#94a3b8;">
+              <strong>Estimated Verification Time:</strong> 2–4 Hours
+            </p>
+          </div>
+          <p>
+            Once verified, your subscription will be activated automatically, and you will receive another confirmation email with your receipt. You can also monitor your subscription status directly from your dashboard.
+          </p>
+          <p style="margin-top:24px;font-size:12px;color:#64748b;">
+            This is an automated confirmation of your payment submission. Please do not reply directly to this email.
+          </p>
+        </td></tr>
+        <tr><td style="padding:16px 32px 28px;text-align:center;border-top:1px solid rgba(255,255,255,0.05);">
+          <p style="margin:0;color:#475569;font-size:11px;">© ${new Date().getFullYear()} GannPro9. All rights reserved.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+
+  if (!config.smtp.user) {
+    console.log(`[DEV PAYMENT EMAIL] To: ${email}, Plan: ${planName}, Amount: ${amountPkr} PKR`);
+    return;
+  }
+
+  try {
+    await transporter.sendMail({
+      from: `"${config.smtp.fromName}" <${config.smtp.fromEmail}>`,
+      to: email,
+      subject: "GannPro9 - Payment Proof Received & Awaiting Verification",
+      html,
+    });
+  } catch (error) {
+    console.error("Failed to send payment submitted email:", error);
+  }
+}
+
