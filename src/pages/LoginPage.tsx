@@ -38,6 +38,11 @@ export function LoginPage() {
         <div>
           <Label>Password</Label>
           <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder="••••••••" />
+          <div className="flex justify-end mt-1.5">
+            <Link to="/forgot-password" className="text-xs text-slate-400 hover:text-slate-300">
+              Forgot Password?
+            </Link>
+          </div>
         </div>
         <Button type="submit" loading={loading} className="w-full">Sign In</Button>
       </form>

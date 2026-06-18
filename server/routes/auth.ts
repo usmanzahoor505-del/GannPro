@@ -283,4 +283,113 @@ router.get("/me", authenticate, async (req: AuthRequest, res) => {
   res.json({ user });
 });
 
+// POST /api/auth/forgot-password/request — generate reset OTP and send email
+router.post("/forgot-password/request", async (req, res) => {
+  try {
+    const { email, newPassword } = req.body;
+    if (!email || !newPassword) {
+      return res.status(400).json({ error: "Email and new password are required" });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: "Password must be at least 6 characters" });
+    }
+
+    const { data: user } = await supabase
+      .from("users")
+      .select("id")
+      .eq("email", email.toLowerCase())
+      .eq("role", "user")
+      .maybeSingle();
+
+    if (!user) {
+      return res.status(404).json({ error: "Email is not registered" });
+    }
+
+    const { data: recentOtp } = await supabase
+      .from("otp_verifications")
+      .select("created_at")
+      .eq("email", email.toLowerCase())
+      .eq("is_used", false)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (recentOtp) {
+      const elapsed = (Date.now() - new Date(recentOtp.created_at).getTime()) / 1000;
+      if (elapsed < config.otpResendCooldown) {
+        return res.status(429).json({
+          error: "Please wait before requesting another OTP",
+          cooldown: Math.ceil(config.otpResendCooldown - elapsed),
+        });
+      }
+    }
+
+    const otp = generateOtp();
+    const expiresAt = new Date();
+    expiresAt.setMinutes(expiresAt.getMinutes() + config.otpExpiryMinutes);
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+
+    await supabase.from("otp_verifications").insert({
+      email: email.toLowerCase(),
+      otp_code: otp,
+      expires_at: expiresAt.toISOString(),
+      name: "Password Reset",
+      password_hash: passwordHash,
+    });
+
+    await sendOtpEmail(email, otp);
+
+    res.json({ message: "OTP sent to your email", email: email.toLowerCase() });
+  } catch (err) {
+    console.error("FORGOT_PASSWORD_REQUEST_ERROR", err);
+    res.status(500).json({ error: "Failed to request password reset OTP" });
+  }
+});
+
+// POST /api/auth/forgot-password/verify — verify OTP and update user password
+router.post("/forgot-password/verify", async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+    if (!email || !otp) {
+      return res.status(400).json({ error: "Email and OTP are required" });
+    }
+
+    const { data: record } = await supabase
+      .from("otp_verifications")
+      .select("*")
+      .eq("email", email.toLowerCase())
+      .eq("is_used", false)
+      .eq("name", "Password Reset")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!record) return res.status(400).json({ error: "Invalid reset OTP request, try again" });
+    if (new Date(record.expires_at) < new Date()) {
+      return res.status(400).json({ error: "OTP has expired. Please try again." });
+    }
+    if (record.otp_code !== otp) {
+      return res.status(400).json({ error: "Invalid OTP, try again" });
+    }
+
+    // Mark OTP as used
+    await supabase.from("otp_verifications").update({ is_used: true }).eq("id", record.id);
+
+    // Update user's password in database
+    const { error: updateErr } = await supabase
+      .from("users")
+      .update({ password_hash: record.password_hash })
+      .eq("email", email.toLowerCase())
+      .eq("role", "user");
+
+    if (updateErr) throw updateErr;
+
+    res.json({ message: "Password updated successfully! You can now log in." });
+  } catch (err) {
+    console.error("FORGOT_PASSWORD_VERIFY_ERROR", err);
+    res.status(500).json({ error: "Verification and reset failed" });
+  }
+});
+
 export default router;
+

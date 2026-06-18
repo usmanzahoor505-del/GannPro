@@ -122,6 +122,18 @@ export const api = {
 
   adminRejectPayment: (id: string) =>
     request(`/admin/payments/${id}/reject`, { method: "POST" }),
+
+  forgotPasswordRequest: (body: { email: string; newPassword: string }) =>
+    request<{ message: string; email: string }>("/auth/forgot-password/request", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+
+  forgotPasswordVerify: (body: { email: string; otp: string }) =>
+    request<{ message: string }>("/auth/forgot-password/verify", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
 };
 
 export interface User {

@@ -7,6 +7,7 @@ import { LoginPage } from "@/pages/LoginPage";
 import { RegisterPage } from "@/pages/RegisterPage";
 import { AdminLoginPage } from "@/pages/AdminLoginPage";
 import { UserDashboardPage } from "@/pages/UserDashboardPage";
+import { ForgotPasswordPage } from "@/pages/ForgotPasswordPage";
 import { CalculatorPage } from "@/pages/CalculatorPage";
 import { SubscribePage } from "@/pages/SubscribePage";
 import { ReceiptPage } from "@/pages/ReceiptPage";
@@ -25,6 +26,7 @@ export default function App() {
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
 
