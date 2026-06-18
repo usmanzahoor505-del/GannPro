@@ -198,11 +198,12 @@ export function SubscribePage() {
                 <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 space-y-4">
                   <div>
                     <Label>Full Name</Label>
-                    <Input value={name} onChange={(e) => setName(e.target.value)} required />
+                    <Input name="name" value={name} onChange={(e) => setName(e.target.value)} required />
                   </div>
                   <div>
                     <Label>Email</Label>
                     <Input
+                      name="email"
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
@@ -212,6 +213,7 @@ export function SubscribePage() {
                   <div>
                     <Label>Phone Number</Label>
                     <Input
+                      name="phone"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       placeholder="03XX XXXXXXX"
@@ -378,6 +380,7 @@ export function SubscribePage() {
                   <div>
                     <Label>Transaction ID / Reference Number</Label>
                     <Input
+                      name="transactionId"
                       value={transactionId}
                       onChange={(e) => setTransactionId(e.target.value)}
                       placeholder="e.g. JC-1234567890 or TID-XXXXXXX"
@@ -393,6 +396,7 @@ export function SubscribePage() {
                     <div>
                       <Label>Your Bank Name</Label>
                       <Input
+                        name="senderBankName"
                         value={senderBankName}
                         onChange={(e) => setSenderBankName(e.target.value)}
                         placeholder="e.g. HBL, Meezan Bank, UBL, MCB..."
@@ -414,7 +418,6 @@ export function SubscribePage() {
                         id="screenshot-upload"
                         onChange={(e) => setScreenshot(e.target.files?.[0] || null)}
                         className="hidden"
-                        required
                       />
                       <label
                         htmlFor="screenshot-upload"

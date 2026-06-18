@@ -8,6 +8,57 @@ import { addMonths } from "../services/subscription.js";
 const router = Router();
 router.use(authenticate, requireAdmin);
 
+// ── ONE-TIME MIGRATION ENDPOINT ──────────────────────────────────────────────
+// Run once:  curl -X POST https://ganntradingsignal.cloud/api/admin/run-migration \
+//              -H "Cookie: <your admin cookie>"
+// Delete this block after running.
+router.post("/run-migration", async (_req, res) => {
+  const url = process.env.SUPABASE_URL!;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+  const projectRef = url.replace("https://", "").split(".")[0];
+
+  const columns = [
+    { name: "payment_method", def: "TEXT" },
+    { name: "screenshot_url", def: "TEXT" },
+    { name: "transaction_id", def: "TEXT" },
+    { name: "receipt_id",     def: "TEXT" },
+    { name: "reviewed_at",    def: "TIMESTAMPTZ" },
+    { name: "reviewed_by",    def: "UUID" },
+  ];
+
+  const results: Record<string, string> = {};
+
+  for (const { name, def } of columns) {
+    const sql = `ALTER TABLE payments ADD COLUMN IF NOT EXISTS "${name}" ${def};`;
+    try {
+      const r = await fetch(
+        `https://api.supabase.com/v1/projects/${projectRef}/database/query`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${key}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ query: sql }),
+        }
+      );
+      results[name] = r.ok ? "✅ added" : `⚠️ status ${r.status}: ${await r.text()}`;
+    } catch (e: any) {
+      results[name] = `❌ ${e.message}`;
+    }
+  }
+
+  // Reload schema cache via notify
+  try {
+    const { supabase: sb } = await import("../db.js");
+    await (sb as any).rpc("pgrst_watch");
+  } catch { /* ignore */ }
+
+  res.json({ message: "Migration attempted", results });
+});
+// ── END MIGRATION ENDPOINT ────────────────────────────────────────────────────
+
+
 router.get("/stats", async (_req, res) => {
   try {
     const { data, error } = await supabase.from("admin_stats").select("*").single();

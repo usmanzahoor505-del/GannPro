@@ -115,9 +115,9 @@ router.post(
         payment,
         message: "Payment submitted successfully. Admin will verify and activate your subscription within 2-4 hours.",
       });
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: "Payment submission failed" });
+    } catch (err: any) {
+      console.error("Payment submission error:", err);
+      res.status(500).json({ error: err?.message || "Payment submission failed" });
     }
   }
 );

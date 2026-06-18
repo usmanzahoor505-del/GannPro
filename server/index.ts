@@ -14,7 +14,22 @@ const app = express();
 
 app.use(
   cors({
-    origin: config.frontendUrl,
+    origin: (origin, callback) => {
+      const allowed = [
+        config.frontendUrl,
+        config.frontendUrl.replace("https://", "https://www."),
+        config.frontendUrl.replace("https://www.", "https://"),
+        "http://localhost:5173",
+        "http://localhost:3000",
+      ].filter(Boolean);
+      // Allow same-origin requests (origin === undefined) and listed origins
+      if (!origin || allowed.includes(origin)) {
+        callback(null, true);
+      } else {
+        console.warn(`CORS blocked origin: ${origin}`);
+        callback(new Error(`Not allowed by CORS: ${origin}`));
+      }
+    },
     credentials: true,
   })
 );
