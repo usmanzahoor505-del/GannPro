@@ -226,5 +226,6 @@ export interface AdminPayment {
   screenshot_url: string;
   status: string;
   submitted_at: string;
+  payment_method?: string;
   users: { name: string; email: string };
 }

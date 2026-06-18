@@ -45,6 +45,7 @@ export async function submitPayment(
       amount_pkr: amount,
       transaction_id: transactionId,
       screenshot_url: screenshotUrl,
+      payment_method: paymentMethod,
       status: "pending",
     })
     .select()
@@ -86,7 +87,7 @@ export async function getPaymentHistory(userId: string) {
 export async function getPendingPayments(status?: string) {
   let query = supabase
     .from("payments")
-    .select("*, users(name, email)")
+    .select("*, users!payments_user_id_fkey(name,email)")
     .order("submitted_at", { ascending: false });
 
   if (status && status !== "all") {
@@ -101,7 +102,7 @@ export async function getPendingPayments(status?: string) {
 export async function approvePayment(paymentId: string, adminId: string) {
   const { data: payment, error: pErr } = await supabase
     .from("payments")
-    .select("*, users(name, email)")
+    .select("*, users!payments_user_id_fkey(name,email)")
     .eq("id", paymentId)
     .single();
   if (pErr || !payment) throw new Error("Payment not found");
