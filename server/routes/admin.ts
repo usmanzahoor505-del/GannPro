@@ -9,54 +9,80 @@ const router = Router();
 router.use(authenticate, requireAdmin);
 
 // ── ONE-TIME MIGRATION ENDPOINT ──────────────────────────────────────────────
-// Run once:  curl -X POST https://ganntradingsignal.cloud/api/admin/run-migration \
-//              -H "Cookie: <your admin cookie>"
+// Run once:  curl -s -X POST https://ganntradingsignal.cloud/api/admin/run-migration -b /tmp/admin.cookie
 // Delete this block after running.
 router.post("/run-migration", async (_req, res) => {
-  const url = process.env.SUPABASE_URL!;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-  const projectRef = url.replace("https://", "").split(".")[0];
-
-  const columns = [
-    { name: "payment_method", def: "TEXT" },
-    { name: "screenshot_url", def: "TEXT" },
-    { name: "transaction_id", def: "TEXT" },
-    { name: "receipt_id",     def: "TEXT" },
-    { name: "reviewed_at",    def: "TIMESTAMPTZ" },
-    { name: "reviewed_by",    def: "UUID" },
-  ];
+  const supabaseUrl = process.env.SUPABASE_URL!;
+  const serviceKey  = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+  const projectRef  = supabaseUrl.replace("https://", "").split(".")[0];
+  const pgMetaBase  = `https://${projectRef}.supabase.co/pg-meta/v0`;
+  const headers     = {
+    Authorization: `Bearer ${serviceKey}`,
+    "Content-Type": "application/json",
+    apikey: serviceKey,
+  };
 
   const results: Record<string, string> = {};
 
-  for (const { name, def } of columns) {
-    const sql = `ALTER TABLE payments ADD COLUMN IF NOT EXISTS "${name}" ${def};`;
-    try {
-      const r = await fetch(
-        `https://api.supabase.com/v1/projects/${projectRef}/database/query`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${key}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ query: sql }),
-        }
-      );
-      results[name] = r.ok ? "✅ added" : `⚠️ status ${r.status}: ${await r.text()}`;
-    } catch (e: any) {
-      results[name] = `❌ ${e.message}`;
-    }
-  }
-
-  // Reload schema cache via notify
   try {
-    const { supabase: sb } = await import("../db.js");
-    await (sb as any).rpc("pgrst_watch");
-  } catch { /* ignore */ }
+    // 1. Get all tables to find payments table_id
+    const tablesRes = await fetch(`${pgMetaBase}/tables`, { headers });
+    if (!tablesRes.ok) {
+      const t = await tablesRes.text();
+      return res.status(500).json({ error: `Failed to list tables: ${t}` });
+    }
+    const tables: any[] = await tablesRes.json();
+    const paymentsTable = tables.find((t: any) => t.name === "payments" && t.schema === "public");
+    if (!paymentsTable) {
+      return res.status(404).json({ error: "payments table not found in public schema" });
+    }
+    const tableId = paymentsTable.id;
 
-  res.json({ message: "Migration attempted", results });
+    // 2. Get existing columns
+    const colsRes = await fetch(`${pgMetaBase}/columns?table_id=${tableId}`, { headers });
+    const existingCols: any[] = colsRes.ok ? await colsRes.json() : [];
+    const existingNames = new Set(existingCols.map((c: any) => c.name));
+
+    // 3. Add missing columns
+    const missing = [
+      { name: "payment_method", type: "text" },
+      { name: "screenshot_url", type: "text" },
+      { name: "transaction_id", type: "text" },
+      { name: "receipt_id",     type: "text" },
+      { name: "reviewed_at",    type: "timestamptz" },
+      { name: "reviewed_by",    type: "uuid" },
+    ];
+
+    for (const col of missing) {
+      if (existingNames.has(col.name)) {
+        results[col.name] = "✅ already exists";
+        continue;
+      }
+      const addRes = await fetch(`${pgMetaBase}/columns`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          table_id: tableId,
+          name: col.name,
+          type: col.type,
+          is_nullable: true,
+        }),
+      });
+      if (addRes.ok) {
+        results[col.name] = "✅ added";
+      } else {
+        const txt = await addRes.text();
+        results[col.name] = `⚠️ ${addRes.status}: ${txt}`;
+      }
+    }
+
+    res.json({ message: "Migration complete", tableId, results });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message, results });
+  }
 });
 // ── END MIGRATION ENDPOINT ────────────────────────────────────────────────────
+
 
 
 router.get("/stats", async (_req, res) => {
