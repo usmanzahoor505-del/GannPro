@@ -12,45 +12,54 @@ import { useToast } from "@/context/ToastContext";
 type Step = "plans" | "payment" | "confirm";
 type PaymentMethod = "jazzcash" | "easypaisa" | "bank";
 
+const AppLogo = ({ name, file }: { name: string; file: string }) => (
+  <div className="w-12 h-12 rounded-xl overflow-hidden bg-white flex items-center justify-center p-1.5 shrink-0">
+    <img
+      src={`/logos/${file}`}
+      alt={name}
+      className="w-full h-full object-contain"
+    />
+  </div>
+);
+
 const PAYMENT_METHODS = [
   {
     id: "jazzcash" as PaymentMethod,
     name: "JazzCash",
-    emoji: "📱",
+    logoFile: "lg-691c164eec616-JazzCash.webp",
     color: "from-red-600/20 to-red-500/10",
     border: "border-red-500/40",
     hoverBorder: "hover:border-red-400",
     textColor: "text-red-400",
-    desc: "JazzCash account mein transfer karein",
+    desc: "Transfer to JazzCash account",
   },
   {
     id: "easypaisa" as PaymentMethod,
     name: "EasyPaisa",
-    emoji: "💚",
+    logoFile: "lg-691c1186e198d-easypaisa.webp",
     color: "from-emerald-600/20 to-emerald-500/10",
     border: "border-emerald-500/40",
     hoverBorder: "hover:border-emerald-400",
     textColor: "text-emerald-400",
-    desc: "EasyPaisa account mein transfer karein",
+    desc: "Transfer to EasyPaisa account",
   },
   {
     id: "bank" as PaymentMethod,
     name: "Bank Transfer",
-    emoji: "🏦",
+    logoFile: "lg-67a9cfc4acfce-Meezan-Bank.webp",
     color: "from-blue-600/20 to-blue-500/10",
     border: "border-blue-500/40",
     hoverBorder: "hover:border-blue-400",
     textColor: "text-blue-400",
-    desc: "Direct bank transfer karein (IBAN)",
+    desc: "Direct bank transfer (IBAN)",
   },
 ];
 
 // Account credentials shown to users
 const ACCOUNT_DETAILS = {
   jazzcashNumber: "03099716270",
-  easypaisaNumber: "03099716270",
   iban: "PK82JCMA3005921099716270",
-  accountTitle: "GannPro",
+  accountTitle: "Arbaz Salman",
   bankName: "JazzCash (Mobilink Microfinance Bank)",
 };
 
@@ -98,15 +107,15 @@ export function SubscribePage() {
     e.preventDefault();
 
     if (!transactionId.trim()) {
-      toast("Transaction ID درج کریں", "error");
+      toast("Please enter your Transaction ID", "error");
       return;
     }
     if (!screenshot) {
-      toast("Payment screenshot لازمی ہے", "error");
+      toast("Payment screenshot is required", "error");
       return;
     }
     if (selectedMethod === "bank" && !senderBankName.trim()) {
-      toast("Bank name درج کریں", "error");
+      toast("Please enter your Bank Name", "error");
       return;
     }
 
@@ -122,7 +131,7 @@ export function SubscribePage() {
       }
 
       const response = await api.submitPayment(fd);
-      toast(response.message || "Payment جمع ہو گئی، Admin approval کا انتظار کریں۔", "success");
+      toast(response.message || "Payment submitted successfully. Awaiting admin approval.", "success");
       window.location.href = "/dashboard";
     } catch (err) {
       toast(err instanceof Error ? err.message : "Submission failed", "error");
@@ -138,7 +147,7 @@ export function SubscribePage() {
       <main className="mx-auto max-w-3xl px-4 py-8">
         <h1 className="text-2xl font-bold mb-2">Subscribe to GannPro9</h1>
         <p className="text-slate-500 text-sm mb-8">
-          Plan select karein aur payment proof submit karein
+          Select a plan and submit payment proof
         </p>
 
         {/* Active Subscription Check */}
@@ -149,17 +158,15 @@ export function SubscribePage() {
             </div>
             <h2 className="text-2xl font-bold text-emerald-400 mb-2">Active Subscription</h2>
             <p className="text-slate-300">
-              Aapka{" "}
-              <span className="font-semibold text-white">{subscription.planName}</span> plan active
-              hai.
+              You already have an active{" "}
+              <span className="font-semibold text-white">{subscription.planName}</span> plan.
             </p>
             <p className="text-slate-400 mt-2 text-sm">
-              Subscription{" "}
-              <span className="font-medium text-amber-400">{subscription.daysRemaining} din</span>{" "}
-              mein expire hoga.
+              Your current subscription expires in{" "}
+              <span className="font-medium text-amber-400">{subscription.daysRemaining} days</span>.
             </p>
             <Button className="mt-6 px-8" onClick={() => (window.location.href = "/dashboard")}>
-              Dashboard par jaen
+              Return to Dashboard
             </Button>
           </div>
         ) : (
@@ -262,9 +269,7 @@ export function SubscribePage() {
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3.5">
-                            <div className="h-12 w-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-2xl">
-                              {method.emoji}
-                            </div>
+                            <AppLogo name={method.name} file={method.logoFile} />
                             <div>
                               <p className={`font-bold text-base text-white`}>{method.name}</p>
                               <p className="text-xs text-slate-400 mt-0.5">{method.desc}</p>
@@ -280,8 +285,8 @@ export function SubscribePage() {
 
                   {/* Note */}
                   <div className="mt-5 rounded-xl bg-amber-500/10 border border-amber-500/20 px-4 py-3">
-                    <p className="text-xs text-amber-400 text-center">
-                      ⏳ Payment screenshot aur Transaction ID submit karein — Admin 2-4 ghante mein approve karega
+                    <p className="text-xs text-amber-400 text-center font-sans">
+                      ⏳ Submit payment screenshot and Transaction ID — Admin will verify in 2-4 hours
                     </p>
                   </div>
 
@@ -290,7 +295,7 @@ export function SubscribePage() {
                     className="w-full mt-4 text-sm text-slate-400"
                     onClick={() => setStep("plans")}
                   >
-                    ← Plans par waapis jaen
+                    ← Back to Plans
                   </Button>
                 </div>
               </div>
@@ -303,25 +308,25 @@ export function SubscribePage() {
                 <div
                   className={`rounded-2xl border bg-gradient-to-r ${methodObj.color} ${methodObj.border} p-6`}
                 >
-                  <div className="flex items-center gap-3 mb-4">
-                    <span className="text-2xl">{methodObj.emoji}</span>
+                  <div className="flex items-center gap-3.5 mb-4">
+                    <AppLogo name={methodObj.name} file={methodObj.logoFile} />
                     <div>
                       <h3 className={`font-bold text-xl ${methodObj.textColor}`}>
                         {methodObj.name} Payment Details
                       </h3>
                       <p className="text-sm text-slate-400 mt-0.5">
-                        Neeche diye account mein{" "}
+                        Please transfer{" "}
                         <span className="text-white font-semibold">
                           {amount.toLocaleString()} PKR
                         </span>{" "}
-                        transfer karein
+                        to the account details below
                       </p>
                     </div>
                   </div>
 
                   {/* Credentials grid */}
-                  <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
-                    {/* JazzCash number — always show */}
+                  <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
+                    {/* JazzCash number */}
                     <div className="rounded-xl bg-white/[0.04] border border-white/8 p-4">
                       <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">
                         JazzCash Number
@@ -331,20 +336,10 @@ export function SubscribePage() {
                       </p>
                     </div>
 
-                    {/* EasyPaisa number — always show */}
-                    <div className="rounded-xl bg-white/[0.04] border border-white/8 p-4">
-                      <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">
-                        EasyPaisa Number
-                      </p>
-                      <p className="font-mono font-bold text-white text-lg">
-                        {ACCOUNT_DETAILS.easypaisaNumber}
-                      </p>
-                    </div>
-
                     {/* IBAN */}
                     <div className="rounded-xl bg-white/[0.04] border border-white/8 p-4">
                       <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">
-                        IBAN (Bank Transfer)
+                        IBAN (JazzCash)
                       </p>
                       <p className="font-mono font-bold text-white text-xs break-all">
                         {ACCOUNT_DETAILS.iban}
@@ -377,7 +372,7 @@ export function SubscribePage() {
                   onSubmit={handleSubmitProof}
                   className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 space-y-5"
                 >
-                  <h3 className="font-bold text-lg text-white">Payment Proof Submit Karein</h3>
+                  <h3 className="font-bold text-lg text-white">Submit Payment Proof</h3>
 
                   {/* Transaction ID */}
                   <div>
@@ -385,18 +380,18 @@ export function SubscribePage() {
                     <Input
                       value={transactionId}
                       onChange={(e) => setTransactionId(e.target.value)}
-                      placeholder="e.g. JC-1234567890 ya TID-XXXXXXX"
+                      placeholder="e.g. JC-1234567890 or TID-XXXXXXX"
                       required
                     />
                     <p className="text-xs text-slate-500 mt-1">
-                      Payment app ki receipt mein Transaction ID milega
+                      You can find the Transaction ID in your payment receipt
                     </p>
                   </div>
 
-                  {/* Bank Name — only for Bank Transfer */}
+                  {/* Bank Name ── only for Bank Transfer */}
                   {selectedMethod === "bank" && (
                     <div>
-                      <Label>Aapka Bank Name</Label>
+                      <Label>Your Bank Name</Label>
                       <Input
                         value={senderBankName}
                         onChange={(e) => setSenderBankName(e.target.value)}
@@ -404,7 +399,7 @@ export function SubscribePage() {
                         required
                       />
                       <p className="text-xs text-slate-500 mt-1">
-                        Jis bank se transfer kiya wo bank ka naam likhein
+                        Enter the name of the bank you transferred money from
                       </p>
                     </div>
                   )}
@@ -430,20 +425,20 @@ export function SubscribePage() {
                             <span className="text-3xl">✅</span>
                             <p className="text-sm text-emerald-400 font-medium">{screenshot.name}</p>
                             <p className="text-xs text-slate-500">
-                              {(screenshot.size / 1024).toFixed(1)} KB — change karne ke liye click karein
+                              {(screenshot.size / 1024).toFixed(1)} KB — click to change
                             </p>
                           </>
                         ) : (
                           <>
                             <span className="text-3xl">📷</span>
                             <p className="text-sm text-slate-300 font-medium">
-                              Screenshot choose karein
+                              Choose Screenshot
                             </p>
                             <p className="text-xs text-slate-500">
-                              Payment receipt ya transaction confirmation screenshot
+                              Payment receipt or transaction confirmation screenshot
                             </p>
                             <span className="mt-2 rounded-lg bg-violet-600/20 border border-violet-500/30 px-4 py-1.5 text-xs text-violet-300 font-medium">
-                              📁 File Browse
+                              📁 Browse File
                             </span>
                           </>
                         )}
@@ -456,11 +451,11 @@ export function SubscribePage() {
                     loading={submitting}
                     className="w-full text-base py-3 font-semibold rounded-xl"
                   >
-                    ✅ Payment Proof Submit Karein
+                    ✅ Submit Payment Proof
                   </Button>
 
-                  <p className="text-xs text-slate-500 text-center">
-                    ⏳ Admin 2-4 ghante mein verify karke subscription activate kar dega
+                  <p className="text-xs text-slate-500 text-center font-sans">
+                    ⏳ Admin will verify and activate your subscription within 2-4 hours
                   </p>
                 </form>
 
@@ -476,7 +471,7 @@ export function SubscribePage() {
                       setScreenshot(null);
                     }}
                   >
-                    ← Payment Method Change Karein
+                    ← Change Payment Method
                   </Button>
                 </div>
               </div>
