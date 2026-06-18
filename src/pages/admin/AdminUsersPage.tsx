@@ -50,6 +50,7 @@ export function AdminUsersPage() {
                 <th className="px-4 py-3 text-left text-slate-400 font-medium">Email</th>
                 <th className="px-4 py-3 text-left text-slate-400 font-medium">Plan</th>
                 <th className="px-4 py-3 text-left text-slate-400 font-medium">Status</th>
+                <th className="px-4 py-3 text-left text-slate-400 font-medium">Active Date</th>
                 <th className="px-4 py-3 text-left text-slate-400 font-medium">Trial End</th>
                 <th className="px-4 py-3 text-left text-slate-400 font-medium">Sub Expiry</th>
                 <th className="px-4 py-3 text-left text-slate-400 font-medium">Actions</th>
@@ -65,6 +66,11 @@ export function AdminUsersPage() {
                     <td className="px-4 py-3 capitalize">{sub?.plan || "—"}</td>
                     <td className="px-4 py-3">
                       <Badge status={sub?.status || (u.is_active ? "active" : "cancelled")} />
+                    </td>
+                    <td className="px-4 py-3 text-slate-400">
+                      {sub?.status === "active" && sub?.sub_start
+                        ? new Date(sub.sub_start).toLocaleDateString()
+                        : "—"}
                     </td>
                     <td className="px-4 py-3 text-slate-400">
                       {sub?.trial_end ? new Date(sub.trial_end).toLocaleDateString() : "—"}
