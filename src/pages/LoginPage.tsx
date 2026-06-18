@@ -44,9 +44,6 @@ export function LoginPage() {
       <p className="mt-6 text-center text-sm text-slate-500">
         Don't have an account? <Link to="/register" className="text-violet-400 hover:text-violet-300">Register</Link>
       </p>
-      <p className="mt-2 text-center text-xs text-slate-600">
-        <Link to="/admin/login" className="hover:text-slate-400">Admin Login</Link>
-      </p>
     </AuthLayout>
   );
 }
