@@ -12,75 +12,46 @@ router.use(authenticate, requireAdmin);
 // Run once:  curl -s -X POST https://ganntradingsignal.cloud/api/admin/run-migration -b /tmp/admin.cookie
 // Delete this block after running.
 router.post("/run-migration", async (_req, res) => {
-  const supabaseUrl = process.env.SUPABASE_URL!;
-  const serviceKey  = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-  const projectRef  = supabaseUrl.replace("https://", "").split(".")[0];
-  const pgMetaBase  = `https://${projectRef}.supabase.co/pg-meta/v0`;
-  const headers     = {
-    Authorization: `Bearer ${serviceKey}`,
-    "Content-Type": "application/json",
-    apikey: serviceKey,
-  };
-
-  const results: Record<string, string> = {};
-
-  try {
-    // 1. Get all tables to find payments table_id
-    const tablesRes = await fetch(`${pgMetaBase}/tables`, { headers });
-    if (!tablesRes.ok) {
-      const t = await tablesRes.text();
-      return res.status(500).json({ error: `Failed to list tables: ${t}` });
-    }
-    const tables: any[] = await tablesRes.json();
-    const paymentsTable = tables.find((t: any) => t.name === "payments" && t.schema === "public");
-    if (!paymentsTable) {
-      return res.status(404).json({ error: "payments table not found in public schema" });
-    }
-    const tableId = paymentsTable.id;
-
-    // 2. Get existing columns
-    const colsRes = await fetch(`${pgMetaBase}/columns?table_id=${tableId}`, { headers });
-    const existingCols: any[] = colsRes.ok ? await colsRes.json() : [];
-    const existingNames = new Set(existingCols.map((c: any) => c.name));
-
-    // 3. Add missing columns
-    const missing = [
-      { name: "payment_method", type: "text" },
-      { name: "screenshot_url", type: "text" },
-      { name: "transaction_id", type: "text" },
-      { name: "receipt_id",     type: "text" },
-      { name: "reviewed_at",    type: "timestamptz" },
-      { name: "reviewed_by",    type: "uuid" },
-    ];
-
-    for (const col of missing) {
-      if (existingNames.has(col.name)) {
-        results[col.name] = "✅ already exists";
-        continue;
-      }
-      const addRes = await fetch(`${pgMetaBase}/columns`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          table_id: tableId,
-          name: col.name,
-          type: col.type,
-          is_nullable: true,
-        }),
+  const envKeys = Object.keys(process.env);
+  const dbUrlKey = envKeys.find(k => k.toLowerCase().includes("db") || k.toLowerCase().includes("postgres") || k.toLowerCase().includes("conn"));
+  
+  if (dbUrlKey && process.env[dbUrlKey]) {
+    try {
+      // Dynamically import pg (Node Postgres)
+      const pg = await import("pg");
+      const client = new pg.default.Client({
+        connectionString: process.env[dbUrlKey],
+        ssl: { rejectUnauthorized: false }
       });
-      if (addRes.ok) {
-        results[col.name] = "✅ added";
-      } else {
-        const txt = await addRes.text();
-        results[col.name] = `⚠️ ${addRes.status}: ${txt}`;
+      await client.connect();
+      
+      const sqls = [
+        `ALTER TABLE payments ADD COLUMN IF NOT EXISTS "payment_method" TEXT;`,
+        `ALTER TABLE payments ADD COLUMN IF NOT EXISTS "screenshot_url" TEXT;`,
+        `ALTER TABLE payments ADD COLUMN IF NOT EXISTS "transaction_id" TEXT;`,
+        `ALTER TABLE payments ADD COLUMN IF NOT EXISTS "receipt_id" TEXT;`,
+        `ALTER TABLE payments ADD COLUMN IF NOT EXISTS "reviewed_at" TIMESTAMPTZ;`,
+        `ALTER TABLE payments ADD COLUMN IF NOT EXISTS "reviewed_by" UUID;`
+      ];
+      
+      const results: string[] = [];
+      for (const sql of sqls) {
+        await client.query(sql);
+        results.push(`Executed: ${sql}`);
       }
+      await client.end();
+      return res.json({ message: "Migration executed via direct DB connection", results });
+    } catch (e: any) {
+      return res.status(500).json({ error: `Connection failed using env key ${dbUrlKey}: ${e.message}`, envKeys });
     }
-
-    res.json({ message: "Migration complete", tableId, results });
-  } catch (e: any) {
-    res.status(500).json({ error: e.message, results });
   }
+
+  return res.status(400).json({
+    error: "No direct database connection string found in environment variables.",
+    availableEnvKeys: envKeys
+  });
 });
+
 // ── END MIGRATION ENDPOINT ────────────────────────────────────────────────────
 
 
