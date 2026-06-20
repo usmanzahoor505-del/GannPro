@@ -9,6 +9,7 @@ import { AdminLoginPage } from "@/pages/AdminLoginPage";
 import { UserDashboardPage } from "@/pages/UserDashboardPage";
 import { ForgotPasswordPage } from "@/pages/ForgotPasswordPage";
 import { CalculatorPage } from "@/pages/CalculatorPage";
+import { IntradayCalculatorPage } from "@/pages/IntradayCalculatorPage";
 import { SubscribePage } from "@/pages/SubscribePage";
 import { ReceiptPage } from "@/pages/ReceiptPage";
 import { ContactPage } from "@/pages/ContactPage";
@@ -32,6 +33,7 @@ export default function App() {
 
             <Route path="/dashboard" element={<ProtectedRoute><UserDashboardPage /></ProtectedRoute>} />
             <Route path="/calculator" element={<ProtectedRoute><CalculatorPage /></ProtectedRoute>} />
+            <Route path="/intraday-calculator" element={<ProtectedRoute><IntradayCalculatorPage /></ProtectedRoute>} />
             <Route path="/subscribe" element={<ProtectedRoute><SubscribePage /></ProtectedRoute>} />
             <Route path="/receipt/:id" element={<ProtectedRoute><ReceiptPage /></ProtectedRoute>} />
 

@@ -39,6 +39,7 @@ export function Navbar() {
                   <>
                     <Link to="/dashboard" className="rounded-lg px-3 py-2 text-sm text-slate-400 hover:text-white hover:bg-white/5">Dashboard</Link>
                     <Link to="/calculator" className="rounded-lg px-3 py-2 text-sm text-slate-400 hover:text-white hover:bg-white/5">Calculator</Link>
+                    <Link to="/intraday-calculator" className="rounded-lg px-3 py-2 text-sm text-slate-400 hover:text-white hover:bg-white/5">Intraday Calculator</Link>
                     <Link to="/subscribe" className="rounded-lg px-3 py-2 text-sm text-slate-400 hover:text-white hover:bg-white/5">Subscribe</Link>
                   </>
                 )}
@@ -64,7 +65,7 @@ export function Navbar() {
                 
                 <Link to="/login" className="ml-4 rounded-lg px-3 py-2 text-sm text-slate-400 hover:text-white hover:bg-white/5">Sign In</Link>
                 <Link to="/register">
-                  <Button size="sm" className="ml-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-xs py-1.5 px-3">
+                  <Button className="ml-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-xs py-1.5 px-3">
                     Start Free Trial
                   </Button>
                 </Link>
@@ -124,6 +125,13 @@ export function Navbar() {
                     className="rounded-lg px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-colors"
                   >
                     Calculator
+                  </Link>
+                  <Link 
+                    to="/intraday-calculator" 
+                    onClick={() => setIsOpen(false)}
+                    className="rounded-lg px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-colors"
+                  >
+                    Intraday Calculator
                   </Link>
                   <Link 
                     to="/subscribe" 

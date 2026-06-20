@@ -83,8 +83,9 @@ export function UserDashboardPage() {
               <DetailRow label="Expires" value={sub.subEnd ? new Date(sub.subEnd).toLocaleDateString() : sub.trialEnd ? new Date(sub.trialEnd).toLocaleDateString() : "—"} />
               <DetailRow label="Days Remaining" value={`${sub.daysRemaining} days`} />
             </div>
-            <div className="mt-4 flex gap-3">
+            <div className="mt-4 flex flex-wrap gap-3">
               <Link to="/calculator"><Button>Open Calculator</Button></Link>
+              <Link to="/intraday-calculator"><Button>Open Intraday Calculator</Button></Link>
               <Link to="/subscribe"><Button variant="secondary">Upgrade Plan</Button></Link>
             </div>
           </div>
